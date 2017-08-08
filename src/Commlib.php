@@ -37,14 +37,14 @@ class Commvault {
         if(isset($res->errList)){
             $str = "Error: " .strval($res->errList['errLogMessage']);
             error_log($str);
-            die();
+            return FALSE;
         }elseif(!isset($res['token'])){
             $str = "Error: Token not get";
             error_log($str);
             return FALSE;
         }
 
-        $this->token = $res['token'];
+        $this->token = strval($res['token']);
         return TRUE;
     }
 
@@ -261,9 +261,10 @@ class Commvault {
         }
     }
 
-    private function query($action, $data = NULL){
+    private function query($action, $data = NULL, $accept = "xml"){
+        if(empty($this->url)){ return FALSE; }
         $headers = array(
-            'Accept: application/xml',
+            "Accept: application/$accept",
             'Content-Type: application/xml'
         );
         if(!empty($this->token)){ $headers[] = "Authtoken: " .$this->token; }
@@ -295,6 +296,19 @@ class Commvault {
             echo "Not XML: $result";
             die();
         }
+    }
+
+    public function getToken(){
+        return $this->token;
+    }
+
+    public function setToken($token){
+        if(substr($token, 0, 4) != "QSDK"){
+            $token = "QSDK " .trim($token);
+        }
+
+        $this->token = $token;
+        return $this;
     }
 }
 
