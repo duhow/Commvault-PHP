@@ -66,18 +66,62 @@ class App {
         return $str;
     }
 
-    public function ping($client = NULL){
+    public function ping($client = NULL, $extra = "plain"){
         if(empty($client)){
             die( self::help("ping") );
+        }
+
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
         }
 
         if(is_numeric($client)){
             // TODO get client name
         }
-        // TODO qcommand
-        $command = "qoperation checkready $client";
-        // -dt : detail
-        // -sm : summary
+
+        $posible = ["plain", "summary", "sm", "html", "detail", "detailed", "dt"];
+        if(!empty($extra) and !in_array($extra, $posible)){
+            // Rotate if not contains command TODO
+            $tmp = $extra;
+            $extra = $client;
+            $client = $tmp;
+            unset($tmp);
+        }
+        if(in_array($extra, ["dt", "detailed"])){ $extra = "detail"; }
+        if(in_array($extra, ["sm"])){ $extra = "summary"; }
+
+        $flag = "-sm";
+        if($extra == "detail"){ $flag = "-dt"; }
+
+        $res = self::$Commvault->QCommand("qoperation checkready -c $client $flag");
+
+        try {
+            $xml = @simplexml_load_string($res);
+            if(empty($xml)){
+                throw new Exception();
+            }
+            // var_dump($xml);
+            if(isset($xml['errorCode'])){
+                $numcode = intval($xml['errorCode']);
+                if(isset(self::$Lang['error_code_' .$numcode])){
+                    die( self::$Lang['error_code_' .$numcode] ."\n");
+                }
+                die( strval($xml['errorMessage']) );
+            }
+        } catch (Exception $e) {
+            // Es HTML sin error.
+
+            if(in_array($extra, ["plain", "summary"])){
+                $res = substr($res, strpos($res, "</style") + strlen("</style>"));
+                $res = strip_tags($res);
+            }
+
+            if(strpos($res, "ClientReady") !== FALSE){
+                $res = self::$Lang['client_ping_ok'];
+            }
+
+            die( $res ."\n" );
+        }
     }
 
     public function client($search = NULL, $extra = NULL){
@@ -90,7 +134,6 @@ class App {
         }
 
         $posible = ["json", "xml", "summary"];
-
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
             $tmp = $extra;
@@ -139,14 +182,11 @@ class App {
             }
 
             $str .= str_pad("Client Groups:", 20) .implode(", ", $cgs) ."\n";
+            // Enable Backup / Restore / Data Aging
+            // Description
 
             $str .= "\n";
             die( $str );
-
-            // CG
-            // Enable Backup / Restore / Data Aging
-
-            // Description
         }
     }
 
@@ -216,8 +256,6 @@ App::init();
 if(count($argv) == 1){
     die( App::help() );
 }
-
-// call_user_func_array
 
 $command = strtolower($argv[1]);
 if($command == "init" or !method_exists("App", $command)){

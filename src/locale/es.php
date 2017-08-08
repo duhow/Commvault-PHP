@@ -19,6 +19,10 @@ return array(
     'input_username' => 'Usuario:',
     'input_password' => 'Contraseña:',
 
+    'client_ping_ok' => 'El cliente tiene conexión.',
+
+    'error_code_2' => 'El cliente no existe.',
+    'error_code_3' => 'Conexión fallida.',
 );
 
 ?>
