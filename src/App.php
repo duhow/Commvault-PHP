@@ -237,21 +237,39 @@ class App {
 
         $lib = self::$Commvault->getLibrary($search);
         $mls = $lib->libraryInfo->magLibSummary;
-        $MAs = explode(",", trim(strval($mls['associatedMediaAgents'])));
 
-        $str = strval($lib->libraryInfo->library['libraryName']) .' - ' .strval($mls['isOnline']) ."\n"
-                .str_pad("MA:", 16) .implode(", ", $MAs);
+        if($extra == "size"){
+            $data = [
+                'free' => self::parserSize($mls['totalFreeSpace']),
+                'total' => self::parserSize($mls['totalCapacity']),
+            ];
+            $data['used'] = $data['total'] - $data['free'];
+            $data['percent_used'] = number_format($data['used'] / $data['total'] * 100, 2);
+            $data['percent_free'] = number_format($data['free'] / $data['total'] * 100, 2);
 
-        $str .= "\n";
 
-        $backup1 = self::parserSize($mls['bytesBackedupInLast1H'], "GB");
-        $backup24 = self::parserSize($mls['bytesBackedupInLast24H'], "GB");
-        $free = self::parserSize($mls['totalFreeSpace'], "GB");
-        $percent = number_format($free / self::parserSize($mls['totalCapacity'], "GB") * 100, 2);
+            $str = strval($lib->libraryInfo->library['libraryName']) ."\n"
+                    .str_pad(self::$Lang['bytes_free'] .":", 20) .self::parserSize($data['free'], "GB") ." GB - " .$data['percent_free'] ."%\n"
+                    .str_pad(self::$Lang['bytes_used'] .":", 20) .self::parserSize($data['used'], "GB") ." GB - " .$data['percent_used'] ."%\n"
+                    .str_pad(self::$Lang['bytes_total'] .":", 20) .self::parserSize($data['total'], "GB")  ." GB\n"
+                    ."[" .self::progressbar($data['percent_used'], 100, 28) ."]\n";
+        }else{
+            $MAs = explode(",", trim(strval($mls['associatedMediaAgents'])));
 
-        $str .= str_pad(self::$Lang['library_lastbackup'], 16) .date("d/m/Y H:i", strtotime(strval($mls['lastBackupTime']))) ."\n"
-                .str_pad(self::$Lang['library_backupgiga'], 16) .$backup1 ." / " .$backup24 ."\n"
-                .str_pad(self::$Lang['library_freespace'], 16) ."$free GB ($percent%)" ."\n";
+            $str = strval($lib->libraryInfo->library['libraryName']) .' - ' .strval($mls['isOnline']) ."\n"
+                    .str_pad("MA:", 16) .implode(", ", $MAs);
+
+            $str .= "\n";
+
+            $backup1 = self::parserSize($mls['bytesBackedupInLast1H'], "GB");
+            $backup24 = self::parserSize($mls['bytesBackedupInLast24H'], "GB");
+            $free = self::parserSize($mls['totalFreeSpace'], "GB");
+            $percent = number_format($free / self::parserSize($mls['totalCapacity'], "GB") * 100, 2);
+
+            $str .= str_pad(self::$Lang['library_lastbackup'], 16) .date("d/m/Y H:i", strtotime(strval($mls['lastBackupTime']))) ."\n"
+                    .str_pad(self::$Lang['library_backupgiga'], 16) .$backup1 ." / " .$backup24 ."\n"
+                    .str_pad(self::$Lang['library_freespace'], 16) ."$free GB ($percent%)" ."\n";
+        }
 
         echo $str;
     }
@@ -302,6 +320,18 @@ class App {
                 echo str_pad($libraries[$id], $spacer + 4) .str_pad($sizes['percent'], 5, " ", STR_PAD_LEFT) ."% - "
                     .str_pad(self::parserSize($sizes['free'], "GB"), 8, " ", STR_PAD_LEFT) ." / "
                     .str_pad(self::parserSize($sizes['capacity'], "GB"), 8, " ", STR_PAD_LEFT) ." GB\n";
+            }
+        }elseif(in_array($output, ["bar", "progress", "progressbar"])){
+            $spacer = 0;
+            // Calcular spacer
+            foreach($libraries as $name){
+                if(strlen($name) > $spacer){ $spacer = strlen($name); }
+            }
+
+            foreach($libsizes as $id => $sizes){
+                echo str_pad($libraries[$id], $spacer + 4)
+                    ."[" .self::progressbar($sizes['percent'], 100, 28) ."] "
+                    .str_pad($sizes['percent'], 5, " ", STR_PAD_LEFT) ."%\n";
             }
         }elseif($output == "csv"){
             foreach($libsizes as $id => $sizes){

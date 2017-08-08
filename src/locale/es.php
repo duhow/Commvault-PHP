@@ -20,6 +20,11 @@ return array(
     'input_username' => 'Usuario:',
     'input_password' => 'Contraseña:',
 
+    'bytes_free' => 'Espacio libre',
+    'bytes_used' => 'Espacio en uso',
+    'bytes_total' => 'Espacio total',
+    'percentage' => 'Porcentaje',
+
     'client_ping_ok' => 'El cliente %s tiene conexión.',
 
     'client_displayName' => 'Nombre de cliente',
