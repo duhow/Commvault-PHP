@@ -89,7 +89,9 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        if(!empty($extra)){
+        $posible = ["json", "xml", "summary"];
+
+        if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
             $tmp = $extra;
             $extra = $search;
@@ -97,13 +99,13 @@ class App {
             unset($tmp);
         }
 
-        if(!is_numeric($search)){
+        /* if(!is_numeric($search)){
             // Lookup name to ID
             $id = self::$Commvault->getClientId($search);
             if(empty($id)){
                 die( self::$Lang['error_client_not_found'] );
             }
-        }
+        } */
 
         $cli = self::$Commvault->getClient($search);
         if(empty($cli)){
@@ -115,7 +117,36 @@ class App {
         }elseif($extra == "xml"){
             die( $cli->asXML() );
         }elseif($extra == "summary" or empty($extra)){
+            $prop = $cli->clientProperties;
+            $str = str_pad("Client Name:", 20) ."#" .strval($prop->client->clientEntity['clientId']) ." " .strval($prop->client['displayName']) ."\n"
+                    .str_pad("Host Name:", 20) .strval($prop->client->clientEntity['hostName'])  ."\n"
+                    .str_pad("CommServe HostName:", 20) .strval($prop->client->clientEntity['commCellName']) ."\n"
+                    .str_pad("Physical/Virtual:", 20) . ( (bool) $cli['IsVirtualClient'] ? "Virtual" : "Physical" ) ."\n"
+                    ."\n";
 
+            $sp = explode(",", strval($prop->client->versionInfo['version']));
+            $version = intval($prop->client->versionInfo->GalaxyRelease['ReleaseString']) ." "
+                        .$sp[0]; // strval($prop->client->versionInfo->PatchStatus[0]['BaselineUpdates'])
+
+            $str .= str_pad("OS:", 20) .strval($prop->client->osInfo->OsDisplayInfo['OSName']) ."\n"
+                    .str_pad("Platform:", 20) .strval($prop->client->osInfo->OsDisplayInfo['ProcessorType']) ."\n"
+                    .str_pad("CommVault Version:", 20) .$version ."\n"
+                    ."\n";
+
+            $cgs = array();
+            foreach($prop->clientGroups as $cg){
+                $cgs[] = strval($cg['clientGroupName']);
+            }
+
+            $str .= str_pad("Client Groups:", 20) .implode(", ", $cgs) ."\n";
+
+            $str .= "\n";
+            die( $str );
+
+            // CG
+            // Enable Backup / Restore / Data Aging
+
+            // Description
         }
     }
 

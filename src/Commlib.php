@@ -109,7 +109,7 @@ class Commvault {
 
     public function getClientId($name){
         $cli = $this->getClient($name);
-        if(!$cli){ return FALSE; }
+        if(!$cli or !isset($cli->clientProperties)){ return FALSE; }
         return intval($cli->clientProperties->client->clientEntity['clientId']);
     }
 
