@@ -144,7 +144,7 @@ class App {
             return self::client_all($extra);
         }
 
-        $posible = ["json", "xml", "summary", "id"];
+        $posible = ["json", "xml", "summary", "id", "status"];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
             $tmp = $extra;
@@ -153,13 +153,10 @@ class App {
             unset($tmp);
         }
 
-        /* if(!is_numeric($search)){
-            // Lookup name to ID
-            $id = self::$Commvault->getClientId($search);
-            if(empty($id)){
-                die( self::$Lang['error_client_not_found'] );
-            }
-        } */
+        // Ping
+        if($extra == "status"){
+            return self::ping($search);
+        }
 
         $cli = self::$Commvault->getClient($search);
         if(empty($cli)){
