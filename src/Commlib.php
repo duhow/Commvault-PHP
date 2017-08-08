@@ -323,11 +323,16 @@ class Commvault {
         curl_close($ch);
 
         try {
-            $xml = simplexml_load_string($result);
+            if($http_code == 401){ throw new Exception("TOKENAUTH"); }
+            $xml = @simplexml_load_string($result);
             if($this->debug){ var_dump($xml); }
             return $xml;
         } catch (Exception $e) {
-            echo "Not XML: $result";
+            if($e->getMessage() == "TOKENAUTH"){
+                echo "Token not authorized.\n";
+            }else{
+                echo "Not XML: $result";
+            }
             die();
         }
     }
