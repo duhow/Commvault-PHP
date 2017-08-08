@@ -140,6 +140,10 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
+        if($search == "all"){
+            return self::client_all($extra);
+        }
+
         $posible = ["json", "xml", "summary", "id"];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
@@ -196,6 +200,31 @@ class App {
 
             $str .= "\n";
             die( $str );
+        }
+    }
+
+    private function client_all($output = "text"){
+        if(empty($output)){ $output = "text"; }
+        $clients = self::$Commvault->getClient();
+
+        if($output == "text"){
+            foreach($clients as $id => $name){
+                echo str_pad($id, 10) .$name ."\n";
+            }
+        }elseif($output == "json"){
+            echo json_encode($clients, JSON_PRETTY_PRINT);
+        }elseif($output == "csv"){
+            foreach($clients as $id => $name){
+                echo $id .";" .$name ."\n";
+            }
+        }elseif(in_array($output, ["name", "names"])){
+            foreach($clients as $name){
+                echo $name ."\n";
+            }
+        }elseif(in_array($output, ["id", "ids"])){
+            foreach($clients as $id => $name){
+                echo $id ."\n";
+            }
         }
     }
 
