@@ -170,19 +170,19 @@ class App {
             die( strval($cli->clientProperties->client->clientEntity['clientId']) ."\n" );
         }elseif($extra == "summary" or empty($extra)){
             $prop = $cli->clientProperties;
-            $str = str_pad("Client Name:", 20) ."#" .strval($prop->client->clientEntity['clientId']) ." " .strval($prop->client['displayName']) ."\n"
-                    .str_pad("Host Name:", 20) .strval($prop->client->clientEntity['hostName'])  ."\n"
-                    .str_pad("CommServe HostName:", 20) .strval($prop->client->clientEntity['commCellName']) ."\n"
-                    .str_pad("Physical/Virtual:", 20) . ( (bool) $cli['IsVirtualClient'] ? "Virtual" : "Physical" ) ."\n"
+            $str = str_pad(self::$Lang['client_displayName'] .":", 24) ."#" .strval($prop->client->clientEntity['clientId']) ." " .strval($prop->client['displayName']) ."\n"
+                    .str_pad(self::$Lang['client_hostName'] .":", 24) .strval($prop->client->clientEntity['hostName'])  ."\n"
+                    .str_pad(self::$Lang['client_commCellName'] .":", 24) .strval($prop->client->clientEntity['commCellName']) ."\n"
+                    .str_pad(self::$Lang['client_IsVirtualClient'] .":", 24) . ( (bool) $cli['IsVirtualClient'] ? self::$Lang['virtual'] : self::$Lang['physical'] ) ."\n"
                     ."\n";
 
             $sp = explode(",", strval($prop->client->versionInfo['version']));
             $version = intval($prop->client->versionInfo->GalaxyRelease['ReleaseString']) ." "
                         .$sp[0]; // strval($prop->client->versionInfo->PatchStatus[0]['BaselineUpdates'])
 
-            $str .= str_pad("OS:", 20) .strval($prop->client->osInfo->OsDisplayInfo['OSName']) ."\n"
-                    .str_pad("Platform:", 20) .strval($prop->client->osInfo->OsDisplayInfo['ProcessorType']) ."\n"
-                    .str_pad("CommVault Version:", 20) .$version ."\n"
+            $str .= str_pad(self::$Lang['client_OSName'] .":", 24) .strval($prop->client->osInfo->OsDisplayInfo['OSName']) ."\n"
+                    .str_pad(self::$Lang['client_ProcessorType'] .":", 24) .strval($prop->client->osInfo->OsDisplayInfo['ProcessorType']) ."\n"
+                    .str_pad(self::$Lang['client_versionInfo'] .":", 24) .$version ."\n"
                     ."\n";
 
             $cgs = array();
@@ -190,7 +190,7 @@ class App {
                 $cgs[] = strval($cg['clientGroupName']);
             }
 
-            $str .= str_pad("Client Groups:", 20) .implode(", ", $cgs) ."\n";
+            $str .= str_pad(self::$Lang['client_clientGroups'] .":", 24) .implode(", ", $cgs) ."\n";
             // Enable Backup / Restore / Data Aging
             // Description
 

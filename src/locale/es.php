@@ -21,6 +21,17 @@ return array(
 
     'client_ping_ok' => 'El cliente %s tiene conexión.',
 
+    'client_displayName' => 'Nombre de cliente',
+    'client_hostName' => 'Nombre de host',
+    'client_commCellName' => 'CommServe HostName',
+    'client_IsVirtualClient' => 'Fisico/Virtual',
+    'virtual' => 'Virtual',
+    'physical' => 'Fisico',
+    'client_OSName' => 'Nombre de SO',
+    'client_ProcessorType' => 'Plataforma',
+    'client_versionInfo' => 'Version de CommVault',
+    'client_clientGroups' => 'Grupos de cliente',
+
     'error_code_2' => 'El cliente no existe.',
     'error_code_3' => 'Conexión fallida.',
 );
