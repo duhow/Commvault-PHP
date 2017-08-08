@@ -203,6 +203,78 @@ class App {
         }
     }
 
+    public function library($search = NULL, $extra = NULL){
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        // Por defecto mostrar todas las librerias
+        if(empty($search)){
+            $libraries = self::$Commvault->getLibrary();
+            foreach($libraries as $id => $lib){
+                echo str_pad($id, 10) .$lib ."\n";
+            }
+            die();
+        }elseif($search == "sizes"){
+            return self::library_sizes($extra);
+        }
+
+        $posible = ["size"];
+        if(!empty($extra) and !in_array($extra, $posible)){
+            // Rotate if not contains command TODO
+            $tmp = $extra;
+            $extra = $search;
+            $search = $tmp;
+            unset($tmp);
+        }
+    }
+
+    private function library_sizes($output = "text"){
+        if(empty($output)){ $output = "text"; }
+        // $output = used, free, text, json, csv
+
+        $libraries = self::$Commvault->getLibrary();
+        $libsinfo = array();
+        $libsizes = array();
+        $c = 1;
+
+        // Cargar las libs
+        foreach($libraries as $id => $lib){
+            echo "[" . self::progressbar($c++, count($libraries), 24) ."]\r";
+            $libsinfo[$id] = self::$Commvault->getLibrary($id);
+        }
+
+        // Clear line
+        echo str_pad("", 26) ."\r";
+
+        // Extraer los bytes
+        foreach($libsinfo as $id => $lib){
+            $s = $lib->libraryInfo->magLibSummary;
+            $data = [
+                'available' => self::parserSize($s['totalAvailableSpace']),
+                'capacity' => self::parserSize($s['totalCapacity']),
+                'free' => self::parserSize($s['totalFreeSpace']),
+            ];
+            $data['used'] = $data['capacity'] - $data['free'];
+            $data['percent'] = (float) number_format(($data['used'] / $data['capacity']) * 100, 2);
+            $libsizes[$id] = $data;
+        }
+
+        if($output == "text"){
+            $spacer = 0;
+            // Calcular spacer
+            foreach($libraries as $name){
+                if(strlen($name) > $spacer){ $spacer = strlen($name); }
+            }
+
+            foreach($libsizes as $id => $sizes){
+                echo str_pad($libraries[$id], $spacer + 4) .str_pad($sizes['percent'], 5, " ", STR_PAD_LEFT) ."% - "
+                    .str_pad(self::parserSize($sizes['free'], "GB"), 8, " ", STR_PAD_LEFT) ." / "
+                    .str_pad(self::parserSize($sizes['capacity'], "GB"), 8, " ", STR_PAD_LEFT) ." GB\n";
+            }
+        }
+    }
+
     private function client_all($output = "text"){
         if(empty($output)){ $output = "text"; }
         $clients = self::$Commvault->getClient();
@@ -286,6 +358,48 @@ class App {
             die("Login correcto.");
         }
 
+    }
+
+    private function progressbar($val, $max = 100, $chars = 12, $chfull = NULL, $chempty = NULL){
+    	$chfull  = (empty($chfull) ? json_decode('"\u2588"') : $this->emoji($chfull));
+    	$chempty = (empty($chempty) ? json_decode('"\u2592"') : $this->emoji($chempty));
+    	$nfull = floor(($val / $max) * $chars);
+    	if($nfull < 0){ $nfull = 0; }
+    	$nempty = max(($chars - $nfull), 0);
+    	$str = "";
+    	for($i = 0; $i < $nfull; $i++){ $str .= $chfull; }
+    	for($i = 0; $i < $nempty; $i++){ $str .= $chempty; }
+    	return $str;
+    }
+
+    private function parserSize($str, $to = NULL, $dec = 2){
+    	$str = trim($str);
+    	$sizeType = substr($str, -2);
+    	if(is_numeric($sizeType)){
+    		$size = floatval($str);
+    	}else{
+    		$sizeType = strtoupper($sizeType);
+    		$size = floatval(trim(substr($str, 0, -2)));
+    	}
+
+    	$types = [
+    		"PB" => (1024 * 1024 * 1024 * 1024 * 1024),
+    		"TB" => (1024 * 1024 * 1024 * 1024),
+    		"GB" => (1024 * 1024 * 1024),
+    		"MB" => (1024 * 1024),
+    		"KB" => (1024)
+    	];
+
+    	if(in_array($sizeType, array_keys($types))){
+    		$size = $size * $types[$sizeType];
+    	}
+
+    	if(empty($to)){ return round($size); }
+
+    	$to = strtoupper($to);
+    	if(in_array($to, array_keys($types))){
+    		return number_format($size / $types[$to], $dec, ".", "");
+    	}
     }
 }
 
