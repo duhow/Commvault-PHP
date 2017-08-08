@@ -224,6 +224,36 @@ class App {
             $search = $tmp;
             unset($tmp);
         }
+
+        if(is_string($search)){
+            // Pasar a numero
+            $libraries = self::$Commvault->getLibrary();
+            $k = array_search($search, $libraries);
+            if($k === FALSE){
+                die( self::$Lang['error_library_exist'] ."\n" );
+            }
+            $search = $k;
+        }
+
+        $lib = self::$Commvault->getLibrary($search);
+        $mls = $lib->libraryInfo->magLibSummary;
+        $MAs = explode(",", trim(strval($mls['associatedMediaAgents'])));
+
+        $str = strval($lib->libraryInfo->library['libraryName']) .' - ' .strval($mls['isOnline']) ."\n"
+                .str_pad("MA:", 16) .implode(", ", $MAs);
+
+        $str .= "\n";
+
+        $backup1 = self::parserSize($mls['bytesBackedupInLast1H'], "GB");
+        $backup24 = self::parserSize($mls['bytesBackedupInLast24H'], "GB");
+        $free = self::parserSize($mls['totalFreeSpace'], "GB");
+        $percent = number_format($free / self::parserSize($mls['totalCapacity'], "GB") * 100, 2);
+
+        $str .= str_pad(self::$Lang['library_lastbackup'], 16) .date("d/m/Y H:i", strtotime(strval($mls['lastBackupTime']))) ."\n"
+                .str_pad(self::$Lang['library_backupgiga'], 16) .$backup1 ." / " .$backup24 ."\n"
+                .str_pad(self::$Lang['library_freespace'], 16) ."$free GB ($percent%)" ."\n";
+
+        echo $str;
     }
 
     private function library_sizes($output = "text"){

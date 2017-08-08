@@ -15,6 +15,7 @@ return array(
         .'Especifica nombre o ID de cliente.',
     'error_client_not_found' => 'El nombre de cliente no existe o no se ha encontrado.' ."\n",
     'error_token' => 'El token no es válido o ha expirado. Por favor, haz login primero.' ."\n",
+    'error_library_exist' => 'La librería no existe.',
 
     'input_username' => 'Usuario:',
     'input_password' => 'Contraseña:',
@@ -31,6 +32,10 @@ return array(
     'client_ProcessorType' => 'Plataforma',
     'client_versionInfo' => 'Version de CommVault',
     'client_clientGroups' => 'Grupos de cliente',
+
+    'library_lastbackup' => 'Ultimo backup:',
+    'library_backupgiga' => 'GB por 1/24h:',
+    'library_freespace' => 'Espacio libre:',
 
     'error_code_2' => 'El cliente no existe.',
     'error_code_3' => 'Conexión fallida.',
