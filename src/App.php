@@ -299,6 +299,21 @@ class App {
                     .str_pad(self::parserSize($sizes['free'], "GB"), 8, " ", STR_PAD_LEFT) ." / "
                     .str_pad(self::parserSize($sizes['capacity'], "GB"), 8, " ", STR_PAD_LEFT) ." GB\n";
             }
+        }elseif($output == "csv"){
+            foreach($libsizes as $id => $sizes){
+                echo $libraries[$id] .";" .$sizes['free'] .";" .$sizes['used'] .";" .$sizes['capacity'] .";" .round($sizes['percent']) ."\n";
+            }
+        }elseif($output == "json"){
+            $data = array();
+            foreach($libsizes as $id => $sizes){
+                $data[$libraries[$id]] = [
+                    'free' => $sizes['free'],
+                    'used' => $sizes['used'],
+                    'total' => $sizes['capacity'],
+                    'percent' => $sizes['percent']
+                ];
+            }
+            echo json_encode($data, JSON_PRETTY_PRINT);
         }
     }
 
