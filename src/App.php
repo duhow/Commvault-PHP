@@ -133,7 +133,7 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        $posible = ["json", "xml", "summary"];
+        $posible = ["json", "xml", "summary", "id"];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
             $tmp = $extra;
@@ -159,6 +159,8 @@ class App {
             die( json_encode( $cli, JSON_PRETTY_PRINT) );
         }elseif($extra == "xml"){
             die( $cli->asXML() );
+        }elseif($extra == "id"){
+            die( strval($cli->clientProperties->client->clientEntity['clientId']) ."\n" );
         }elseif($extra == "summary" or empty($extra)){
             $prop = $cli->clientProperties;
             $str = str_pad("Client Name:", 20) ."#" .strval($prop->client->clientEntity['clientId']) ." " .strval($prop->client['displayName']) ."\n"
