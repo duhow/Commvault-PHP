@@ -261,6 +261,40 @@ class Commvault {
         }
     }
 
+    public function QCommand($command){
+        if(empty($this->url)){ return FALSE; }
+        $headers = array(
+            "Accept: application/xml",
+            'Content-Type: text/plain'
+        );
+        if(!empty($this->token)){ $headers[] = "Authtoken: " .$this->token; }
+        if($this->limit != NULL){
+            $headers[] = "limit: " .$this->limit;
+            $this->limit = NULL;
+        }
+        if($this->offset != NULL){
+            $headers[] = "offset: " .$this->offset;
+            $this->offset = NULL;
+        }
+        $ch = curl_init($this->url . "QCommand");
+
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $command);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $result = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        try {
+            if($this->debug){ var_dump($result); }
+            return $result;
+        } catch (Exception $e) {
+            return NULL;
+        }
+    }
+
     private function query($action, $data = NULL, $accept = "xml"){
         if(empty($this->url)){ return FALSE; }
         $headers = array(
