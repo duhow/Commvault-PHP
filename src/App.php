@@ -75,8 +75,15 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
+        $name = $client;
+
         if(is_numeric($client)){
-            // TODO get client name
+            $client = self::$Commvault->getClient($client);
+            $client = strval($client->clientProperties->client['displayName']);
+            if(!$client){
+                die( self::$Lang['error_code_2'] ."\n" );
+            }
+            $name = $client;
         }
 
         $posible = ["plain", "summary", "sm", "html", "detail", "detailed", "dt"];
@@ -117,7 +124,7 @@ class App {
             }
 
             if(strpos($res, "ClientReady") !== FALSE){
-                $res = self::$Lang['client_ping_ok'];
+                $res = sprintf(self::$Lang['client_ping_ok'], $name);
             }
 
             die( $res ."\n" );
