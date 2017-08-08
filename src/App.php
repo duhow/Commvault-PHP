@@ -267,12 +267,16 @@ class App {
 
         // Cargar las libs
         foreach($libraries as $id => $lib){
-            echo "[" . self::progressbar($c++, count($libraries), 24) ."]\r";
+            if($output == "text"){
+                echo "[" . self::progressbar($c++, count($libraries), 24) ."]\r";
+            }
             $libsinfo[$id] = self::$Commvault->getLibrary($id);
         }
 
-        // Clear line
-        echo str_pad("", 26) ."\r";
+        if($output == "text"){
+            // Clear line
+            echo str_pad("", 26) ."\r";
+        }
 
         // Extraer los bytes
         foreach($libsinfo as $id => $lib){
