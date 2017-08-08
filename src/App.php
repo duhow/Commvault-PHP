@@ -460,6 +460,12 @@ if($command == "init" or !method_exists("App", $command)){
     die( App::help() );
 }
 
+// Block private methods
+$r = new ReflectionMethod("App", $command);
+if(!$r->isPublic()){
+    die( App::help() );
+}
+
 $callback = $argv;
 array_shift($callback); // Command
 array_shift($callback); // Action
