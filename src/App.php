@@ -462,6 +462,15 @@ class App {
         }
     }
 
+    public function logout(){
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        $query = self::$Commvault->logout();
+        unlink(self::$ConfigFile);
+    }
+
     private function progressbar($val, $max = 100, $chars = 12, $chfull = NULL, $chempty = NULL){
         $chfull  = (empty($chfull) ? json_decode('"\u2588"') : $this->emoji($chfull));
         $chempty = (empty($chempty) ? json_decode('"\u2592"') : $this->emoji($chempty));
