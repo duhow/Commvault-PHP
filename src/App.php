@@ -144,7 +144,7 @@ class App {
             return self::client_all($extra);
         }
 
-        $posible = ["json", "xml", "summary", "id", "status"];
+        $posible = ["json", "xml", "summary", "id", "status", "jobs"];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
             $tmp = $extra;
@@ -156,6 +156,11 @@ class App {
         // Ping
         if($extra == "status"){
             return self::ping($search);
+        }elseif($extra == "jobs"){
+            if(!is_numeric($search)){
+                $search = self::$Commvault->getClientId($search);
+            }
+            return self::client_jobs($search);
         }
 
         $cli = self::$Commvault->getClient($search);
@@ -351,6 +356,14 @@ class App {
         }
     }
 
+    public function jobs(){
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        // $jobs = self::$Commvault->getJob();
+    }
+
     private function client_all($output = "text"){
         if(empty($output)){ $output = "text"; }
         $clients = self::$Commvault->getClient();
@@ -373,6 +386,20 @@ class App {
             foreach($clients as $id => $name){
                 echo $id ."\n";
             }
+        }
+    }
+
+    private function client_jobs($clientid){
+        $jobs = self::$Commvault->getClientJobs($clientid);
+
+        $status = array();
+        foreach($jobs as $job){
+            if(!isset($status[$job->status])){ $status[$job->status] = 0; }
+            $status[$job->status]++;
+        }
+
+        foreach($status as $name => $amount){
+            echo str_pad($name, 32) .$amount ."\n";
         }
     }
 
@@ -433,49 +460,48 @@ class App {
         if(file_exists($path) and is_readable($path)){
             die("Login correcto.");
         }
-
     }
 
     private function progressbar($val, $max = 100, $chars = 12, $chfull = NULL, $chempty = NULL){
-    	$chfull  = (empty($chfull) ? json_decode('"\u2588"') : $this->emoji($chfull));
-    	$chempty = (empty($chempty) ? json_decode('"\u2592"') : $this->emoji($chempty));
-    	$nfull = floor(($val / $max) * $chars);
-    	if($nfull < 0){ $nfull = 0; }
-    	$nempty = max(($chars - $nfull), 0);
-    	$str = "";
-    	for($i = 0; $i < $nfull; $i++){ $str .= $chfull; }
-    	for($i = 0; $i < $nempty; $i++){ $str .= $chempty; }
-    	return $str;
+        $chfull  = (empty($chfull) ? json_decode('"\u2588"') : $this->emoji($chfull));
+        $chempty = (empty($chempty) ? json_decode('"\u2592"') : $this->emoji($chempty));
+        $nfull = floor(($val / $max) * $chars);
+        if($nfull < 0){ $nfull = 0; }
+        $nempty = max(($chars - $nfull), 0);
+        $str = "";
+        for($i = 0; $i < $nfull; $i++){ $str .= $chfull; }
+        for($i = 0; $i < $nempty; $i++){ $str .= $chempty; }
+        return $str;
     }
 
     private function parserSize($str, $to = NULL, $dec = 2){
-    	$str = trim($str);
-    	$sizeType = substr($str, -2);
-    	if(is_numeric($sizeType)){
-    		$size = floatval($str);
-    	}else{
-    		$sizeType = strtoupper($sizeType);
-    		$size = floatval(trim(substr($str, 0, -2)));
-    	}
+        $str = trim($str);
+        $sizeType = substr($str, -2);
+        if(is_numeric($sizeType)){
+            $size = floatval($str);
+        }else{
+            $sizeType = strtoupper($sizeType);
+            $size = floatval(trim(substr($str, 0, -2)));
+        }
 
-    	$types = [
-    		"PB" => (1024 * 1024 * 1024 * 1024 * 1024),
-    		"TB" => (1024 * 1024 * 1024 * 1024),
-    		"GB" => (1024 * 1024 * 1024),
-    		"MB" => (1024 * 1024),
-    		"KB" => (1024)
-    	];
+        $types = [
+            "PB" => (1024 * 1024 * 1024 * 1024 * 1024),
+            "TB" => (1024 * 1024 * 1024 * 1024),
+            "GB" => (1024 * 1024 * 1024),
+            "MB" => (1024 * 1024),
+            "KB" => (1024)
+        ];
 
-    	if(in_array($sizeType, array_keys($types))){
-    		$size = $size * $types[$sizeType];
-    	}
+        if(in_array($sizeType, array_keys($types))){
+            $size = $size * $types[$sizeType];
+        }
 
-    	if(empty($to)){ return round($size); }
+        if(empty($to)){ return round($size); }
 
-    	$to = strtoupper($to);
-    	if(in_array($to, array_keys($types))){
-    		return number_format($size / $types[$to], $dec, ".", "");
-    	}
+        $to = strtoupper($to);
+        if(in_array($to, array_keys($types))){
+            return number_format($size / $types[$to], $dec, ".", "");
+        }
     }
 }
 
