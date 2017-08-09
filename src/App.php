@@ -415,6 +415,19 @@ class App {
 
     }
 
+    public function storagepolicy($MA = NULL){
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        if(empty($MA)){
+            $data = self::$Commvault->getStoragePolicy();
+            foreach($data as $id => $name){
+                echo str_pad($id, 10) ."$name\n";
+            }
+        }
+    }
+
     private function client_all($output = "text"){
         if(empty($output)){ $output = "text"; }
         $clients = self::$Commvault->getClient();
