@@ -12,7 +12,7 @@ commvault client [ list | all ] [ id | name | csv | json ]
           client MYSERVER id
           client MYSERVER status
           client MYSERVER [ jobs | lastjob ]
-          client MYSERVER [ xml | json | csv ]
+          client MYSERVER [ xml | json ]
 
 commvault ping [ MYSERVER | id ]
 
@@ -22,6 +22,7 @@ commvault clientgroup MYCLIGROUP
 commvault storagepolicy
 
 commvault job JOBID
+          jobs
 
 commvault library
           library MYLIB [ size ]

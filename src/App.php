@@ -169,7 +169,7 @@ class App {
         }
 
         $cli = self::$Commvault->getClient($search);
-        if(empty($cli)){
+        if(empty($cli) or !isset($cli->clientProperties)){
             die( self::$Lang['error_client_not_found'] );
         }
 
@@ -426,12 +426,37 @@ class App {
         }
     }
 
-    public function jobs($client){
+    public function jobs($client = NULL){
         if(!self::load_token()){
             die( self::$Lang['error_token'] );
         }
 
-        // $jobs = self::$Commvault->getJob();
+        if(empty($client)){
+            $jobs = self::$Commvault->QCommand("qlist jobsummary -c ");
+
+            // Separate string
+            $jobs = explode("\n", $jobs);
+            $headers = explode(" ", $jobs[0]);
+            foreach($headers as $k => $v){
+                if(empty($v)){ unset($headers[$k]); }
+            }
+            $headers = array_values($headers);
+
+            $values = explode(" ", $jobs[2]); // Values
+            foreach($values as $k => $v){
+                if(strlen($v) == 0){ unset($values[$k]); }
+            }
+            $values = array_values($values);
+
+            unset($jobs);
+            foreach($headers as $k => $n){
+                $jobs[$n] = $values[$k];
+            }
+
+            foreach($jobs as $name => $amount){
+                echo str_pad($name, 12) .$amount ."\n";
+            }
+        }
     }
 
     public function job($jobid, $output = NULL){
