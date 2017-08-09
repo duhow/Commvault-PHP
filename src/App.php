@@ -505,14 +505,50 @@ class App {
 
     }
 
-    public function storagepolicy($MA = NULL){
+    public function storagepolicy($MA = NULL, $output = NULL){
         if(!self::load_token()){
             die( self::$Lang['error_token'] );
         }
 
+        $posible = ["text", "id", "ids", "name", "names", "json", "csv"];
+        if(in_array($MA, $posible)){
+            $tmp = $output;
+            $output = $MA;
+            $MA = $tmp;
+            unset($tmp);
+        }
+
+        $policies = array();
         if(empty($MA)){
-            $data = self::$Commvault->getStoragePolicy();
-            foreach($data as $id => $name){
+            $policies = self::$Commvault->getStoragePolicy();
+        }else{
+            if(!is_numeric($MA)){
+                $MA = self::$Commvault->getClientId($MA);
+                if(empty($MA)){ return FALSE; }
+            }
+
+            $storages = self::$Commvault->getStoragePolicyMA($MA);
+            foreach($storages as $st){
+                $policies[$st['storagePolicyId']] = $st['storagePolicyName'];
+            }
+        }
+
+        if($output == "json"){
+            echo json_encode($policies, JSON_PRETTY_PRINT) ."\n";
+        }elseif($output == "csv"){
+            foreach($policies as $id => $name){
+                echo "$id;$name\n";
+            }
+        }elseif(in_array($output, ["id", "ids"])){
+            foreach($policies as $id => $name){
+                echo "$id\n";
+            }
+        }elseif(in_array($output, ["name", "names"])){
+            foreach($policies as $id => $name){
+                echo "$name\n";
+            }
+        }else{
+            foreach($policies as $id => $name){
                 echo str_pad($id, 10) ."$name\n";
             }
         }

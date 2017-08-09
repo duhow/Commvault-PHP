@@ -19,7 +19,8 @@ commvault ping [ MYSERVER | id ]
 commvault clientgroup MYCLIGROUP
           clientgroups [ id | name | csv | json ]
 
-commvault storagepolicy
+commvault storagepolicy            [ id | name | csv | json ]
+          storagepolicy MEDIAAGENT [ id | name | csv | json ]
 
 commvault job JOBID
           jobs
