@@ -281,6 +281,32 @@ class Commvault {
         }
     }
 
+    public function getStoragePolicyMA($MA){
+        $query = $this->query("StoragePolicyListAssociatedToMediaAgent?MediaAgent=$MA");
+        if(!$query or !isset($query->storagePolicyInformationAssociatedToMA)){
+            return array();
+        }
+
+        $storages = array();
+        foreach($query->storagePolicyInformationAssociatedToMA as $st){
+            $data = array();
+            foreach($st->attributes() as $k => $v){
+                if(strpos($k, "is") === 0){
+                    $data[$k] = (bool) intval($v);
+                }else{
+                    $data[$k] = strval($v);
+                }
+            }
+            $data['mediaAgent'] = intval($st->mediaAgent['mediaAgentId']);
+            foreach($st->storagePolicyAndCopy->attributes() as $k => $v){
+                $data[$k] = strval($v);
+            }
+
+            $storages[] = $data;
+        }
+        return $storages;
+    }
+
     public function QCommand($command){
         if(empty($this->url)){ return FALSE; }
         $headers = array(
