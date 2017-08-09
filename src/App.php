@@ -49,7 +49,7 @@ class App {
 
             case 'help':
             default:
-                $str = sprintf(self::$Lang['help_usage'], $argv[0], self::$Lang['command']) . "\n";
+                $str = sprintf(self::$Lang['help_usage'], basename($argv[0]), self::$Lang['command']) . "\n";
 
                 $commands = [
                     'ping', 'client', 'clients', 'clientgroup', 'library',
@@ -144,7 +144,7 @@ class App {
             return self::client_all($extra);
         }
 
-        $posible = ["json", "xml", "summary", "id", "status", "jobs"];
+        $posible = ["json", "xml", "summary", "id", "status", "jobs", "lastjob"];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
             $tmp = $extra;
@@ -161,6 +161,11 @@ class App {
                 $search = self::$Commvault->getClientId($search);
             }
             return self::client_jobs($search);
+        }elseif($extra == "lastjob"){
+            if(!is_numeric($search)){
+                $search = self::$Commvault->getClientId($search);
+            }
+            return self::client_lastjob($search);
         }
 
         $cli = self::$Commvault->getClient($search);
@@ -271,7 +276,7 @@ class App {
             $free = self::parserSize($mls['totalFreeSpace'], "GB");
             $percent = number_format($free / self::parserSize($mls['totalCapacity'], "GB") * 100, 2);
 
-            $str .= str_pad(self::$Lang['library_lastbackup'], 16) .date("d/m/Y H:i", strtotime(strval($mls['lastBackupTime']))) ."\n"
+            $str .= str_pad(self::$Lang['lastbackup'], 16) .date("d/m/Y H:i", strtotime(strval($mls['lastBackupTime']))) ."\n"
                     .str_pad(self::$Lang['library_backupgiga'], 16) .$backup1 ." / " .$backup24 ."\n"
                     .str_pad(self::$Lang['library_freespace'], 16) ."$free GB ($percent%)" ."\n";
         }
@@ -356,12 +361,58 @@ class App {
         }
     }
 
-    public function jobs(){
+    public function jobs($client){
         if(!self::load_token()){
             die( self::$Lang['error_token'] );
         }
 
         // $jobs = self::$Commvault->getJob();
+    }
+
+    public function job($jobid, $output = NULL){
+        if(empty($jobid)){
+            die( self::help("job") );
+        }
+
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        $job = self::$Commvault->getJob($jobid);
+        if(!isset($job->jobSummary)){
+            die( self::$Lang['job_not_exist'] ."\n" );
+        }
+
+        $job = $job->jobSummary;
+        echo "JOB #" .$job['jobId'] ." - " .$job['percentComplete'] ."% " .$job['status'] ."\n"
+            ."CLI #" .$job->subclient['clientId'] ." - " .$job->subclient['clientName'] ."\n"
+            .$job['jobType']." " .$job['backupLevelName']." " .$job['appTypeName'] ."\n"
+            .date("d/m/y H:i", intval($job['jobStartTime'])) ." - " .date("d/m/y H:i", intval($job['lastUpdateTime']))
+            ." (" .gmdate("H:i:s", intval($job['jobElapsedTime'])) .")\n";
+
+        if($job['jobType'] == "Backup"){
+            echo self::parserSize($job['sizeOfApplication'], "GB") ." GB -> "
+                .self::parserSize($job['sizeOfMediaOnDisk'], "GB") ." GB (-"
+                .number_format(floatval($job['percentSavings']), 2) ."%)"
+                ."\n";
+
+            $files = array();
+            if($job['totalFailedFiles'] > 0){
+                $files[] = "F: " .$job['totalFailedFiles'];
+            }
+            if($job['totalFailedFolders'] > 0){
+                $files[] = "D: " .$job['totalFailedFolders'];
+            }
+            if($job['totalNumOfFiles'] > 0){
+                $files[] = "A: " .$job['totalNumOfFiles'];
+            }
+
+            echo implode(", ", $files);
+
+        }
+
+        echo "\n";
+
     }
 
     private function client_all($output = "text"){
@@ -401,6 +452,29 @@ class App {
         foreach($status as $name => $amount){
             echo str_pad($name, 32) .$amount ."\n";
         }
+
+        $lastjob = max(array_keys($jobs));
+        if($lastjob){
+            echo "\n";
+            return self::client_lastjob($jobs[$lastjob]);
+        }
+    }
+
+    private function client_lastjob($clientid){
+        if(!is_object($clientid) and is_numeric($clientid)){
+            $jobs = self::$Commvault->getClientJobs($clientid);
+            if(empty($jobs)){ return FALSE; }
+            $lastjob = max(array_keys($jobs));
+            $job = $jobs[$lastjob];
+        }else{ // Si pasamos el object Job directamente
+            $job = $clientid;
+        }
+
+        echo self::$Lang['lastjob'] ." #$job->jobId - $job->status\n"
+            ."$job->jobType $job->backupLevelName $job->appTypeName\n"
+            .date("d/m/y H:i", $job->jobStartTime) ." - " .date("d/m/y H:i", $job->lastUpdateTime)
+            ." (" .gmdate("H:i:s", $job->jobElapsedTime) .")\n"
+            ."\n";
     }
 
     public function login($username = NULL, $password = NULL, $host = NULL){

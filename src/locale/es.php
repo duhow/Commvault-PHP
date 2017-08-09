@@ -41,9 +41,12 @@ return array(
     'client_versionInfo' => 'Version de CommVault',
     'client_clientGroups' => 'Grupos de cliente',
 
-    'library_lastbackup' => 'Ultimo backup:',
+    'lastjob' => 'Ultimo job:',
+    'lastbackup' => 'Ultimo backup:',
     'library_backupgiga' => 'GB por 1/24h:',
     'library_freespace' => 'Espacio libre:',
+
+    'job_not_exist' => 'El trabajo indicado no existe.',
 
     'error_code_2' => 'El cliente no existe.',
     'error_code_3' => 'Conexión fallida.',
