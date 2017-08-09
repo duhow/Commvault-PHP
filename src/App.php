@@ -261,15 +261,37 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        if(!is_numeric($search)){
-            $cgs = self::$Commvault->getClientGroup();
-            $k = array_search($search, $cgs);
-            if($k === FALSE){
-                die("No se encuentra el grupo de clientes." ."\n");
-            }
-            $search = $k;
+        $posible = ["clients", "proxies", "size"];
+        if(in_array($search, $posible) and !empty($filter)){
+            $tmp = $filter;
+            $filter = $search;
+            $search = $tmp;
+            unset($tmp);
         }
-        $cg = self::$Commvault->getClientGroup($k);
+
+        if($filter == "size"){
+            return self::clientgroup_size($search);
+        }
+
+        if(!is_numeric($search)){
+            $search = self::$Commvault->getClientGroupId($search);
+            if(!$search){
+                die( self::$Lang['error_clientgroup_not_found'] );
+            }
+        }
+
+        $cg = self::$Commvault->getClientGroup($search);
+        if(!$cg){
+            if(!$search){
+                die( self::$Lang['error_clientgroup_not_found'] );
+            }
+        }
+
+        if($filter == "clients"){
+            return self::clientgroup_clients($cg, $output);
+        }elseif($filter == "proxies"){
+            return self::clientgroup_proxies($cg, $output);
+        }
 
         if($output == "xml"){
             // Pretty
@@ -279,6 +301,38 @@ class App {
         }else{
             var_dump($cg);
         }
+    }
+
+    private function clientgroup_clients($cgobj, $output = NULL){
+        $clis = array();
+
+        foreach($cgobj->clientGroupDetail->associatedClients as $cli){
+            $id = intval($cli['clientId']);
+            $name = strval($cli['clientName']);
+            $host = strval($cli['hostName']);
+            $clis[$id] = [
+                'id' => $id,
+                'name' => $name,
+                'host' => $host
+            ];
+        }
+
+        return self::generic_export_array($clis, $output);
+    }
+
+    private function clientgroup_proxies($cgobj, $output = NULL){
+        $clis = array();
+
+        foreach($cgobj->clientGroupDetail->firewallConfiguration->proxyEntities as $cli){
+            $id = intval($cli['clientId']);
+            $name = strval($cli['clientName']);
+            $clis[$id] = $name;
+        }
+
+        return self::generic_export_keyval($clis, $output);
+    }
+
+    private function clientgroup_size($cgid){
 
     }
 
@@ -294,27 +348,7 @@ class App {
         $cgs = self::$Commvault->getClientGroup();
 
         if(!$cgs){ return NULL; }
-        if(empty($output)){ $output = "text"; }
-
-        if($output == "json"){
-            echo json_encode($cgs, JSON_PRETTY_PRINT) ."\n";
-        }elseif($output == "csv"){
-            foreach($cgs as $id => $name){
-                echo "$id;$name\n";
-            }
-        }elseif(in_array($output, ["name", "names"])){
-            foreach($cgs as $name){
-                echo $name ."\n";
-            }
-        }elseif(in_array($output, ["id", "ids"])){
-            foreach($cgs as $id => $name){
-                echo $id ."\n";
-            }
-        }else{
-            foreach($cgs as $id => $name){
-                echo str_pad($id, 10) ."$name\n";
-            }
-        }
+        return self::generic_export_keyval($cgs, $output);
     }
 
     public function library($search = NULL, $extra = NULL){
@@ -322,24 +356,20 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        // Por defecto mostrar todas las librerias
-        if(empty($search)){
-            $libraries = self::$Commvault->getLibrary();
-            foreach($libraries as $id => $lib){
-                echo str_pad($id, 10) .$lib ."\n";
-            }
-            die();
-        }elseif($search == "sizes"){
-            return self::library_sizes($extra);
-        }
-
-        $posible = ["size"];
-        if(!empty($extra) and !in_array($extra, $posible)){
-            // Rotate if not contains command TODO
+        $posible = ["size", "csv", "json", "text"];
+        if(in_array($search, $posible)){
             $tmp = $extra;
             $extra = $search;
             $search = $tmp;
             unset($tmp);
+        }
+
+        // Por defecto mostrar todas las librerias
+        if($search == "sizes"){
+            return self::library_sizes($extra);
+        }if(empty($search)){
+            $libraries = self::$Commvault->getLibrary();
+            return self::generic_export_keyval($libraries, $extra);
         }
 
         if(is_string($search)){
@@ -538,13 +568,9 @@ class App {
             if($job['totalNumOfFiles'] > 0){
                 $files[] = "A: " .$job['totalNumOfFiles'];
             }
-
             echo implode(", ", $files);
-
         }
-
         echo "\n";
-
     }
 
     public function storagepolicy($MA = NULL, $output = NULL){
@@ -575,50 +601,14 @@ class App {
             }
         }
 
-        if($output == "json"){
-            echo json_encode($policies, JSON_PRETTY_PRINT) ."\n";
-        }elseif($output == "csv"){
-            foreach($policies as $id => $name){
-                echo "$id;$name\n";
-            }
-        }elseif(in_array($output, ["id", "ids"])){
-            foreach($policies as $id => $name){
-                echo "$id\n";
-            }
-        }elseif(in_array($output, ["name", "names"])){
-            foreach($policies as $id => $name){
-                echo "$name\n";
-            }
-        }else{
-            foreach($policies as $id => $name){
-                echo str_pad($id, 10) ."$name\n";
-            }
-        }
+        return self::generic_export_keyval($policies, $output);
     }
 
     private function client_all($output = "text"){
         if(empty($output)){ $output = "text"; }
         $clients = self::$Commvault->getClient();
 
-        if($output == "text"){
-            foreach($clients as $id => $name){
-                echo str_pad($id, 10) .$name ."\n";
-            }
-        }elseif($output == "json"){
-            echo json_encode($clients, JSON_PRETTY_PRINT) ."\n";
-        }elseif($output == "csv"){
-            foreach($clients as $id => $name){
-                echo $id .";" .$name ."\n";
-            }
-        }elseif(in_array($output, ["name", "names"])){
-            foreach($clients as $name){
-                echo $name ."\n";
-            }
-        }elseif(in_array($output, ["id", "ids"])){
-            foreach($clients as $id => $name){
-                echo $id ."\n";
-            }
-        }
+        return self::generic_export_keyval($clients, $output);
     }
 
     private function client_jobs($clientid){
@@ -735,6 +725,59 @@ class App {
 
         $query = self::$Commvault->logout();
         unlink(self::$ConfigFile);
+    }
+
+    private function generic_export_array($array, $output, $id = "id", $name = "name", $host = "host"){
+        if($output == "json"){
+            echo json_encode($array, JSON_PRETTY_PRINT) ."\n";
+        }elseif($output == "csv"){
+            foreach($array as $cli){
+                echo $cli[$id] .";" .$cli[$name] .";" .$cli[$name] ."\n";
+            }
+        }elseif(in_array($output, ["id", "ids"])){
+            foreach($array as $cli){
+                echo $cli[$id] ."\n";
+            }
+        }elseif(in_array($output, ["name", "names"])){
+            foreach($array as $cli){
+                echo $cli[$name] ."\n";
+            }
+        }elseif(in_array($output, ["host", "hosts", "hostname"])){
+            foreach($array as $cli){
+                echo $cli[$name] ."\n";
+            }
+        }else{
+            foreach($array as $id => $val){
+                echo str_pad($id, 10);
+                if(!is_array($val)){
+                    echo "$val\n";
+                }else{
+                    echo $val[$name] ."\n";
+                }
+            }
+        }
+    }
+
+    private function generic_export_keyval($array, $output){
+        if($output == "json"){
+            echo json_encode($array, JSON_PRETTY_PRINT) ."\n";
+        }elseif($output == "csv"){
+            foreach($array as $id => $name){
+                echo "$id;$name\n";
+            }
+        }elseif(in_array($output, ["name", "names"])){
+            foreach($array as $name){
+                echo $name ."\n";
+            }
+        }elseif(in_array($output, ["id", "ids"])){
+            foreach($array as $id => $name){
+                echo $id ."\n";
+            }
+        }else{
+            foreach($array as $id => $name){
+                echo str_pad($id, 10) ."$name\n";
+            }
+        }
     }
 
     private function progressbar($val, $max = 100, $chars = 12, $chfull = NULL, $chempty = NULL){
