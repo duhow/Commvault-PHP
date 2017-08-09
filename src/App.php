@@ -409,7 +409,16 @@ class App {
             $username = NULL;
         }
 
-        if(empty($host)){ $host = "localhost"; }
+        if(empty($host)){
+            $host = "localhost";
+            if(file_exists(self::$ConfigFile) and is_readable(self::$ConfigFile)){
+                self::$Config = parse_ini_file(self::$ConfigFile);
+                if(isset(self::$Config['url'])){
+                    $host = self::$Config['url'];
+                    echo self::$Lang['login_reconnect_host'] ." $host\n";
+                }
+            }
+        }
         if(strpos($host, "http") === FALSE){
             $host = "http://$host";
         }
@@ -439,6 +448,8 @@ class App {
         self::$Commvault->password = $password;
         self::$Commvault->url = $host;
 
+        echo self::$Lang['login_connecting'] ."\r";
+
         $login = self::$Commvault->login();
         if($login !== TRUE){
             die();
@@ -458,7 +469,7 @@ class App {
         chmod($path, 0600);
 
         if(file_exists($path) and is_readable($path)){
-            die("Login correcto.");
+            die(self::$Lang['login_ok'] ."\n");
         }
     }
 
