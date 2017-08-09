@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+function clog($text){ echo "[*] $text\n"; }
+
+$filename = "commvault.phar";
+if(file_exists($filename)){
+    unlink($filename);
+}
+
+clog("Creating Phar file ...");
+
+$phar = new Phar($filename,
+    FilesystemIterator::CURRENT_AS_FILEINFO |
+    FilesystemIterator::KEY_AS_FILENAME
+    , $filename);
+
+$phar = $phar->convertToExecutable(Phar::PHAR);
+
+clog("Adding files ...");
+$phar->buildFromDirectory("src");
+
+clog("Creating stub ...");
+$stub = "#!/usr/bin/php \n"
+        .$phar->createDefaultStub("App.php");
+$phar->setStub($stub);
+
+$phar->stopBuffering();
+
+clog("Giving executable perms ...");
+rename($filename, "commvault");
+chmod("commvault", 0555);
+
+clog("Done! You can move the file to /usr/local/bin for global usage.");
+
+?>
