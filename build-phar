@@ -21,7 +21,7 @@ clog("Adding files ...");
 $phar->buildFromDirectory("src");
 
 clog("Creating stub ...");
-$stub = "#!/usr/bin/php \n"
+$stub = "#!/usr/bin/env php \n"
         .$phar->createDefaultStub("App.php");
 $phar->setStub($stub);
 
