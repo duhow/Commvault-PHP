@@ -140,7 +140,7 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        if($search == "all"){
+        if(in_array($search, ["all", "list"])){
             return self::client_all($extra);
         }
 
@@ -207,6 +207,71 @@ class App {
 
             $str .= "\n";
             die( $str );
+        }
+    }
+
+    public function clientgroup($search = NULL, $filter = NULL, $output = NULL){
+        if(empty($search)){
+            die( self::help("clientgroup") );
+        }
+
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        if(!is_numeric($search)){
+            $cgs = self::$Commvault->getClientGroup();
+            $k = array_search($search, $cgs);
+            if($k === FALSE){
+                die("No se encuentra el grupo de clientes." ."\n");
+            }
+            $search = $k;
+        }
+        $cg = self::$Commvault->getClientGroup($k);
+
+        if($output == "xml"){
+            // Pretty
+            $dom = dom_import_simplexml($cg)->ownerDocument;
+            $dom->formatOutput = TRUE;
+            echo $dom->saveXML();
+        }else{
+            var_dump($cg);
+        }
+
+    }
+
+    public function clientgroups($output = NULL){
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        return self::clientgroup_list($output);
+    }
+
+    private function clientgroup_list($output = NULL){
+        $cgs = self::$Commvault->getClientGroup();
+
+        if(!$cgs){ return NULL; }
+        if(empty($output)){ $output = "text"; }
+
+        if($output == "json"){
+            echo json_encode($cgs, JSON_PRETTY_PRINT) ."\n";
+        }elseif($output == "csv"){
+            foreach($cgs as $id => $name){
+                echo "$id;$name\n";
+            }
+        }elseif(in_array($output, ["name", "names"])){
+            foreach($cgs as $name){
+                echo $name ."\n";
+            }
+        }elseif(in_array($output, ["id", "ids"])){
+            foreach($cgs as $id => $name){
+                echo $id ."\n";
+            }
+        }else{
+            foreach($cgs as $id => $name){
+                echo str_pad($id, 10) ."$name\n";
+            }
         }
     }
 
@@ -437,7 +502,7 @@ class App {
                 echo str_pad($id, 10) .$name ."\n";
             }
         }elseif($output == "json"){
-            echo json_encode($clients, JSON_PRETTY_PRINT);
+            echo json_encode($clients, JSON_PRETTY_PRINT) ."\n";
         }elseif($output == "csv"){
             foreach($clients as $id => $name){
                 echo $id .";" .$name ."\n";
