@@ -17,6 +17,9 @@ return array(
     'error_token' => 'El token no es válido o ha expirado. Por favor, haz login primero.' ."\n",
     'error_library_exist' => 'La librería no existe.',
 
+    'login_reconnect_host' => 'Reutilizando conexión previa:',
+    'login_ok' => 'Login correcto, token guardado.',
+    'login_connecting' => 'Conectando...',
     'input_username' => 'Usuario:',
     'input_password' => 'Contraseña:',
 
