@@ -48,6 +48,26 @@ class Commvault {
         return TRUE;
     }
 
+    public function logout(){
+        if(empty($this->url) or empty($this->token)){ return FALSE; }
+        $headers = array(
+            "Accept: application/xml",
+            "Authtoken: " .$this->token,
+            "Content-Length: 0",
+        );
+        $ch = curl_init($this->url . "Logout");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+
+        $result = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if($result == "User logged out" or $http_code == 401){ return TRUE; }
+        return $result;
+    }
+
     public function getLibrary($id = NULL){
         // Get all storage media
         if(empty($id)){
