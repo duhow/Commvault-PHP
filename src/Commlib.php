@@ -200,7 +200,7 @@ class Commvault {
         if(!is_numeric($id)){ $id = $this->getClientGroupId($id); }
         $group = $this->query("ClientGroup/$id");
 
-        if(!$group or empty($group)){ return FALSE; }
+        if(!$group or !isset($group->clientGroupDetail)){ return FALSE; }
         if(isset($group['errorCode'])){
             echo "Error " .$group['errorCode'] .": " .$group['errorMessage'] ." - $id" ."\n";
         }

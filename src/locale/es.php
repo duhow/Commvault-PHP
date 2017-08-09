@@ -14,6 +14,7 @@ return array(
         'Realiza una comprobación de conectividad hacia la máquina.' ."\n"
         .'Especifica nombre o ID de cliente.',
     'error_client_not_found' => 'El nombre de cliente no existe o no se ha encontrado.' ."\n",
+    'error_clientgroup_not_found' => 'El grupo de clientes no existe o no se ha encontrado.' ."\n",
     'error_token' => 'El token no es válido o ha expirado. Por favor, haz login primero.' ."\n",
     'error_library_exist' => 'La librería no existe.',
 

@@ -14,7 +14,8 @@ commvault client [ list | all ] [ id | name | csv | json ]
           client MYSERVER [ jobs | lastjob ]
           client MYSERVER [ xml | json ]
 
-commvault ping [ MYSERVER | id ]
+commvault ping             [ MYSERVER   | id ]
+          ping clientgroup [ MYCLIGROUP | id ]
 
 commvault clientgroup MYCLIGROUP
           clientgroups [ id | name | csv | json ]

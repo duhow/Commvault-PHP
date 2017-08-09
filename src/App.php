@@ -75,6 +75,23 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
+        $posible = ["plain", "summary", "sm", "html", "detail", "detailed", "dt", "clientgroup", "group"];
+        if(!empty($extra) and !in_array($extra, $posible)){
+            // Rotate if not contains command TODO
+            $tmp = $extra;
+            $extra = $client;
+            $client = $tmp;
+            unset($tmp);
+        }
+        if(in_array($extra, ["group", "clientgroup"])){
+            return self::ping_clientgroup($client);
+        }
+        if(in_array($extra, ["dt", "detailed"])){ $extra = "detail"; }
+        if(in_array($extra, ["sm"])){ $extra = "summary"; }
+
+        $flag = "-sm";
+        if($extra == "detail"){ $flag = "-dt"; }
+
         $name = $client;
 
         if(is_numeric($client)){
@@ -85,20 +102,6 @@ class App {
             }
             $name = $client;
         }
-
-        $posible = ["plain", "summary", "sm", "html", "detail", "detailed", "dt"];
-        if(!empty($extra) and !in_array($extra, $posible)){
-            // Rotate if not contains command TODO
-            $tmp = $extra;
-            $extra = $client;
-            $client = $tmp;
-            unset($tmp);
-        }
-        if(in_array($extra, ["dt", "detailed"])){ $extra = "detail"; }
-        if(in_array($extra, ["sm"])){ $extra = "summary"; }
-
-        $flag = "-sm";
-        if($extra == "detail"){ $flag = "-dt"; }
 
         $res = self::$Commvault->QCommand("qoperation checkready -c $client $flag");
 
@@ -111,9 +114,10 @@ class App {
             if(isset($xml['errorCode'])){
                 $numcode = intval($xml['errorCode']);
                 if(isset(self::$Lang['error_code_' .$numcode])){
-                    die( self::$Lang['error_code_' .$numcode] ."\n");
+                    echo self::$Lang['error_code_' .$numcode] ."\n";
+                }else{
+                    echo strval($xml['errorMessage']);
                 }
-                die( strval($xml['errorMessage']) );
             }
         } catch (Exception $e) {
             // Es HTML sin error.
@@ -127,7 +131,45 @@ class App {
                 $res = sprintf(self::$Lang['client_ping_ok'], $name);
             }
 
-            die( $res ."\n" );
+            echo $res ."\n";
+        }
+    }
+
+    private function ping_clientgroup($cgid){
+        $clients = self::$Commvault->getClientGroupClients($cgid);
+        if(!$clients){
+            echo self::$Lang['error_clientgroup_not_found'];
+            die();
+        }
+
+        $spacer = 0;
+        foreach($clients as $name){
+            if(strlen($name) > $spacer){ $spacer = strlen($name); }
+        }
+        $spacer = $spacer + 4;
+
+        foreach($clients as $id => $name){
+            echo str_pad($name, $spacer);
+            $res = self::$Commvault->QCommand("qoperation checkready -c $name -sm");
+            try {
+                $xml = @simplexml_load_string($res);
+                if(empty($xml)){
+                    throw new Exception();
+                }
+                // var_dump($xml);
+                if(isset($xml['errorCode'])){
+                    echo "KO";
+                    // intval($xml['errorCode']);
+                }
+            } catch (Exception $e) {
+                $res = substr($res, strpos($res, "</style") + strlen("</style>"));
+                $res = strip_tags($res);
+
+                if(strpos($res, "ClientReady") !== FALSE){
+                    echo "OK";
+                }
+            }
+            echo "\n";
         }
     }
 
