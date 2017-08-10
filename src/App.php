@@ -593,7 +593,7 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        if(empty($client)){
+        if(in_array($client, ["count", "summary"])){
             $jobs = self::$Commvault->QCommand("qlist jobsummary -c ");
 
             // Separate string
@@ -617,6 +617,42 @@ class App {
 
             foreach($jobs as $name => $amount){
                 echo str_pad($name, 12) .$amount ."\n";
+            }
+        }elseif(empty($client)){
+            $jobs = self::$Commvault->QCommand("qoperation execscript -sn GetAllRunningJobs");
+            $xml = simplexml_load_string($jobs);
+
+            // ID, Operation, Name, Agent, subclient, jobtype,
+            // phase, storage, media, status, progress, errors, delay
+
+            $jobs = array();
+
+            foreach($xml->FieldValue as $job){
+                $data = array();
+                foreach($job->attributes() as $k => $v){
+                    $data[$k] = strval($v);
+                }
+                $jobs[$data['jobID']] = $data;
+            }
+
+            ksort($jobs);
+            $jobs = array_reverse($jobs); // Nuevos primero
+
+            foreach($jobs as $job){
+                $date = date("d/m H:i", $job['jobStartTime']);
+                echo str_pad($job['jobID'], 8)
+                    .str_pad(strtoupper($job['StateName']), 9)
+                    .str_pad($job['OperationType'] ." " .$job['JobType'], 19)
+                    .str_pad("- " .$job['currentPhaseName'], 20)
+                    .str_pad($job['clientName'], 30)
+                    .$date . " "
+                    ."[" .self::progressbar($job['percentcomplete'], 100, 8) ."] ";
+
+                if(intval($job['percentcomplete']) > 0){
+                    echo str_pad($job['percentcomplete'] ."%", 3, "0", STR_PAD_LEFT);
+                }
+
+                echo "\n";
             }
         }
     }

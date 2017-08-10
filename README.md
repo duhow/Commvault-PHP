@@ -25,7 +25,7 @@ commvault storagepolicy            [ id | name | csv | json ]
           storagepolicy MEDIAAGENT [ id | name | csv | json ]
 
 commvault job JOBID
-          jobs
+          jobs [ summary ]
 
 commvault log          [ info | minor | major | critical ]
           log MYSERVER [ info | minor | major | critical ]
