@@ -400,6 +400,10 @@ class App {
                     .str_pad(self::$Lang['bytes_used'] .":", 20) .self::parserSize($data['used'], "GB") ." GB - " .$data['percent_used'] ."%\n"
                     .str_pad(self::$Lang['bytes_total'] .":", 20) .self::parserSize($data['total'], "GB")  ." GB\n"
                     ."[" .self::progressbar($data['percent_used'], 100, 28) ."]\n";
+        }elseif($extra == "xml"){
+            $dom = dom_import_simplexml($lib)->ownerDocument;
+            $dom->formatOutput = TRUE;
+            $str = $dom->saveXML();
         }else{
             $MAs = explode(",", trim(strval($mls['associatedMediaAgents'])));
 

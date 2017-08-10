@@ -32,6 +32,6 @@ commvault log          [ info | minor | major | critical ]
           log full
 
 commvault library
-          library MYLIB [ size ]
+          library MYLIB [ xml | size ]
           library sizes [ text | bar | csv | json ]
 ```
