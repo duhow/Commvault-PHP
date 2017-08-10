@@ -696,6 +696,10 @@ class App {
             }
             echo implode(", ", $files);
         }
+
+        if(isset($job['pendingReason']) and !empty($job['pendingReason'])){
+            echo strip_tags(strval($job['pendingReason']));
+        }
         echo "\n";
     }
 
