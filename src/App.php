@@ -648,6 +648,130 @@ class App {
             ."\n";
     }
 
+    private function log_severity($id){
+        $severity = [
+            0 => "INFO",
+            3 => "MINOR",
+            6 => "MAJOR",
+            9 => "CRITICAL",
+        ];
+
+        if($id === TRUE){ return $severity; }
+        if(isset($severity[$id])){ return $severity[$id]; }
+        return NULL;
+    }
+
+    public function log($client = NULL, $filter = NULL){
+        if(!self::load_token()){
+            die( self::$Lang['error_token'] );
+        }
+
+        $extra = $client;
+        $posible = [
+            "job", "lastid", "full",
+            "info", "minor", "major", "critical"
+        ];
+
+        if(in_array($client, $posible)){ $client = NULL; }
+        elseif(in_array($filter, $posible)){ $extra = $filter; }
+
+        // -------
+
+        if(in_array($extra, ["full", "complete", "all"])){
+            return self::log_full($client);
+        }
+
+        $conditions = array();
+
+        if(!empty($filter)){
+            $filter = strtoupper($filter);
+            $filter = str_replace([",", ";"], " ", $filter);
+            $filter = explode(" ", $filter);
+            if(!is_array($filter)){ $filter = [$filter]; }
+
+            $conditions = array(
+                'showInfo' => "False",
+                'showMinor' => "False",
+                'showMajor' => "False",
+                'showCritical' => "False",
+            );
+
+            foreach($filter as $f){
+                if(self::log_severity($f)){
+                    $n = ucwords(strtolower($f));
+                    unset($conditions['show' .$n]);
+                }
+            }
+        }
+
+        $eventfinal = self::events_get($client, $conditions);
+
+        if($extra == "lastid"){
+            $event = array_pop($eventfinal);
+            die( intval($event['id']) ."\n" );
+        }
+
+        echo self::events_output($eventfinal, "text");
+    }
+
+    private function log_full($client = NULL){
+        $events = array();
+        foreach(self::log_severity(TRUE) as $type){
+            $conditions = array(
+                'showInfo' => "False",
+                'showMinor' => "False",
+                'showMajor' => "False",
+                'showCritical' => "False",
+            );
+
+            $n = 'show' .ucwords(strtolower($type));
+            unset($conditions[$n]);
+
+            foreach(self::events_get($client, $conditions) as $event){
+                $events[$event['id']] = $event;
+            }
+        }
+
+        ksort($events);
+        echo self::events_output($events, "text");
+    }
+
+    private function events_get($client = NULL, $conditions = array()){
+        $events = self::$Commvault->getEvents($client, $conditions);
+
+        // Parse and reverse to get old -> new
+        $final = array();
+        foreach($events as $e){
+            $data = array();
+            foreach($e->attributes() as $name => $val){
+                $data[$name] = strval($val);
+            }
+            foreach($e->clientEntity->attributes() as $name => $val){
+                $data[$name] = strval($val);
+            }
+            $final[$data['id']] = $data;
+        }
+
+        return array_reverse($final);
+    }
+
+    private function events_output($data, $format = "text"){
+        $str = "";
+
+        if($format == "text"){
+            foreach($data as $event){
+                $id = $event['id'];
+                if(isset($event['jobId'])){ $id = $event['jobId']; }
+                $str .= date("M d H:i:s", intval($event['timeSource'])) ." " .strval($event['clientName']) ." "
+                    .$event['subsystem'] ."[$id]: " .self::log_severity($event["severity"]) ." "
+                    .$event["description"]
+                    ."\n";
+            }
+        }
+
+        return $str;
+    }
+
     public function login($username = NULL, $password = NULL, $host = NULL){
         if(!empty($username) and empty($password) and empty($host)){
             $host = $username;

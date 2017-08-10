@@ -26,6 +26,11 @@ commvault storagepolicy            [ id | name | csv | json ]
 commvault job JOBID
           jobs
 
+commvault log          [ info | minor | major | critical ]
+          log MYSERVER [ info | minor | major | critical ]
+          log lastid   [ info | minor | major | critical ]
+          log full
+
 commvault library
           library MYLIB [ size ]
           library sizes [ text | bar | csv | json ]
