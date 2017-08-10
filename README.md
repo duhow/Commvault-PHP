@@ -11,6 +11,7 @@ commvault login HOSTNAME
 commvault client [ list | all ] [ id | name | csv | json ]
           client MYSERVER id
           client MYSERVER status
+          client MYSERVER size
           client MYSERVER [ jobs | lastjob ]
           client MYSERVER [ xml | json ]
 

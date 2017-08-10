@@ -186,7 +186,10 @@ class App {
             return self::client_all($extra);
         }
 
-        $posible = ["json", "xml", "summary", "id", "status", "jobs", "lastjob"];
+        $posible = [
+            "json", "xml", "summary",
+            "id", "status", "jobs", "lastjob", "size"
+        ];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
             $tmp = $extra;
@@ -198,16 +201,32 @@ class App {
         // Ping
         if($extra == "status"){
             return self::ping($search);
-        }elseif($extra == "jobs"){
+        }elseif($extra == "size"){
             if(!is_numeric($search)){
                 $search = self::$Commvault->getClientId($search);
             }
-            return self::client_jobs($search);
-        }elseif($extra == "lastjob"){
+
+            $sizes = self::client_size($search, TRUE);
+            if(empty($sizes)){
+                die( self::$Lang['error_client_no_jobs'] );
+            }
+            $spacer = strlen(max($sizes));
+            $spacergb = strlen(self::parserSize(max($sizes), "GB"));
+
+            $percentage = number_format(($sizes[0] - $sizes[1]) / $sizes[0] * 100, 2);
+
+            echo "App:  " .str_pad($sizes[0], $spacer, " ", STR_PAD_LEFT) ." / "
+                    .str_pad(self::parserSize($sizes[0], "GB"), $spacergb, " ", STR_PAD_LEFT) ." GB\n"
+                ."Disk: " .str_pad($sizes[1], $spacer, " ", STR_PAD_LEFT) ." / "
+                    .str_pad(self::parserSize($sizes[1], "GB"), $spacergb, " ", STR_PAD_LEFT) ." GB ($percentage%)\n";
+            die();
+        }elseif(in_array($extra, ["jobs", "lastjob"])){
             if(!is_numeric($search)){
                 $search = self::$Commvault->getClientId($search);
             }
-            return self::client_lastjob($search);
+
+            if($extra == "lastjob"){ return self::client_lastjob($search); }
+            return self::client_jobs($search); // All
         }
 
         $cli = self::$Commvault->getClient($search);
@@ -718,6 +737,22 @@ class App {
             .date("d/m/y H:i", $job->jobStartTime) ." - " .date("d/m/y H:i", $job->lastUpdateTime)
             ." (" .gmdate("H:i:s", $job->jobElapsedTime) .")\n"
             ."\n";
+    }
+
+    private function client_size($clientid, $all = FALSE){
+        self::$Commvault->limit = 10000; // HACK
+        $jobs = self::$Commvault->getClientJobs($clientid);
+        if(empty($jobs)){ return NULL; }
+
+        foreach($jobs as $k => $job){
+            if(isset($job->sizeOfMediaOnDisk) and $job->isAged){ unset($jobs[$k]); }
+        }
+
+        $disk = array_sum(array_column($jobs, 'sizeOfMediaOnDisk'));
+        $app  = array_sum(array_column($jobs, 'sizeOfApplication'));
+
+        if(!$all){ return $disk; }
+        return [$app, $disk];
     }
 
     private function log_severity($id){
