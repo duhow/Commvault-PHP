@@ -684,6 +684,7 @@ class App {
 
     private function client_jobs($clientid){
         $jobs = self::$Commvault->getClientJobs($clientid);
+        if(empty($jobs)){ die( self::$Lang['error_client_no_jobs'] ); }
 
         $status = array();
         foreach($jobs as $job){
