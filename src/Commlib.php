@@ -80,6 +80,11 @@ class Commvault {
             }
             ksort($final);
             return $final;
+        }elseif(!is_numeric($id)){
+            $libs = $this->getLibrary();
+            $k = array_search($id, $libs);
+            if($k === FALSE){ return FALSE; }
+            $id = $k;
         }
 
         $storage = $this->query("Library/$id");
