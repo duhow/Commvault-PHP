@@ -317,7 +317,7 @@ class App {
             ];
         }
 
-        return self::generic_export_array($clis, $output);
+        return self::generic_export_colarray($clis, $output);
     }
 
     private function clientgroup_proxies($cgobj, $output = NULL){
@@ -356,7 +356,7 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        $posible = ["size", "csv", "json", "text"];
+        $posible = ["size", "jobs", "csv", "json", "text"];
         if(in_array($search, $posible)){
             $tmp = $extra;
             $extra = $search;
@@ -367,7 +367,9 @@ class App {
         // Por defecto mostrar todas las librerias
         if($search == "sizes"){
             return self::library_sizes($extra);
-        }if(empty($search)){
+        }elseif($extra == "jobs" and !empty($search)){
+            return self::library_jobs($search);
+        }elseif(empty($search)){
             $libraries = self::$Commvault->getLibrary();
             return self::generic_export_keyval($libraries, $extra);
         }
@@ -500,6 +502,71 @@ class App {
             }
             echo json_encode($data, JSON_PRETTY_PRINT);
         }
+    }
+
+    private function library_jobs($libname, $output = "text"){
+        $command = self::$Commvault->QCommand("qoperation execscript -sn QS_FindJobsOnStore -si 0 -si '$libname'");
+        $xml = simplexml_load_string($command);
+        $jobstxt = array();
+        foreach($xml->FieldValue as $l){
+            foreach($l->attributes() as $t){
+                $text = trim(strval(current($t)));
+                if(!empty($text)){ $jobstxt[] = $text; }
+            }
+        }
+
+        /* if($output == "text"){
+            die( implode("\n", $jobstxt) ."\n" );
+        } */
+
+        $lib = self::$Commvault->getLibrary($libname);
+        $devn = array();
+        foreach($lib->libraryInfo->MountPathList as $mpl){
+            $drive = strval($mpl['mountPathName']);
+            $name = strval($mpl->deviceInfo['name']);
+            $devn[$name] = $drive;
+        }
+
+        foreach($jobstxt as $job){
+            $data = array();
+            $exp = explode(" ", $job);
+            foreach($exp as $k){
+                if(strlen($k) > 0){ $data[] = $k; }
+            }
+            $jobs[$data[0]] = [
+                'jobId'             => $data[0],
+                'storagePolicyName' => $data[1],
+                'copyName'          => $data[2],
+                'storeId'           => $data[3],
+                'clientName'        => $data[4],
+                'mountPathName'     => $data[5],
+                'deviceName'        => $devn[$data[6]],
+            ];
+        }
+
+        if($output == "text"){
+            $lens = array();
+            $cols = ['jobId', 'clientName', 'deviceName', 'storagePolicyName'];
+            foreach($cols as $col){
+                $ln = array_unique(array_column($jobs, $col));
+                $lens[$col] = 0;
+                foreach($jobs as $job){
+                    if(strlen($job[$col]) > $lens[$col]){
+                        $lens[$col] = strlen($job[$col]);
+                    }
+                }
+            }
+
+            foreach($jobs as $job){
+                $str = "";
+                foreach($cols as $col){
+                    $str .= str_pad($job[$col], $lens[$col] + 4);
+                }
+                echo trim($str) ."\n";
+            }
+        }
+
+        return self::generic_export_array($jobs, $output);
     }
 
     public function jobs($client = NULL){
@@ -855,7 +922,17 @@ class App {
         unlink(self::$ConfigFile);
     }
 
-    private function generic_export_array($array, $output, $id = "id", $name = "name", $host = "host"){
+    private function generic_export_array($array, $output){
+        if($output == "json"){
+            echo json_encode($array, JSON_PRETTY_PRINT) ."\n";
+        }elseif($output == "csv"){
+            foreach($array as $cli){
+                echo implode(";", array_values($cli)) ."\n";
+            }
+        }
+    }
+
+    private function generic_export_colarray($array, $output, $id = "id", $name = "name", $host = "host"){
         if($output == "json"){
             echo json_encode($array, JSON_PRETTY_PRINT) ."\n";
         }elseif($output == "csv"){
