@@ -191,10 +191,10 @@ class Commvault {
             }
 
             return $final;
-        }elseif(is_string($id)){
+        }elseif(!is_numeric($id)){
             $k = $this->getClientGroupId($id);
             if($k === FALSE){ return FALSE; }
-            return $this->getClientGroup($k);
+            $id = $k;
         }
 
         $group = $this->query("ClientGroup/$id");
