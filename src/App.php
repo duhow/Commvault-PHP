@@ -632,6 +632,8 @@ class App {
             }
         }elseif(empty($client)){
             $jobs = self::$Commvault->QCommand("qoperation execscript -sn GetAllRunningJobs");
+            if($jobs === FALSE){ die( self::$Lang['error_token'] ); }
+
             $xml = simplexml_load_string($jobs);
 
             // ID, Operation, Name, Agent, subclient, jobtype,
