@@ -49,6 +49,8 @@ return array(
     'client_versionInfo' => 'Version de CommVault',
     'client_clientGroups' => 'Grupos de cliente',
 
+    'clients' => 'Clientes',
+    'roles' => 'Permisos',
     'lastjob' => 'Ultimo job:',
     'lastbackup' => 'Ultimo backup:',
     'library_backupgiga' => 'GB por 1/24h:',

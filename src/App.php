@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0811.3";
+    private static $Version = "11.7.0811.4";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -304,6 +304,11 @@ class App {
             unset($tmp);
         }
 
+        if(empty($output) and $filter == "xml"){
+            $output = $filter;
+            $filter = NULL;
+        }
+
         if(!is_numeric($search)){
             $search = self::$Commvault->getClientGroupId($search);
             if(!$search){
@@ -334,7 +339,56 @@ class App {
             $dom->formatOutput = TRUE;
             echo $dom->saveXML();
         }else{
-            var_dump($cg);
+            $cg = $cg->clientGroupDetail;
+            $str = "#" .strval($cg->clientGroup['clientGroupId']) ." - "
+                        .strval($cg->clientGroup['clientGroupName']) ."\n";
+
+            $str .= count($cg->associatedClients) ." " .strtolower(self::$Lang['clients']) ."\n";
+
+            $str .= "\n" . self::$Lang['roles'] .":\n";
+            $access = array();
+            foreach($cg->securityAssociations->associations as $uginfo){
+                $key = strval($uginfo->userOrGroup['_type_']);
+                if($key == 15){
+                    $key = "userGroup";
+                }elseif($key == 13){
+                    $key = "user";
+                }else{
+                    continue;
+                }
+
+                $roles = array();
+                if(isset($uginfo->properties->role['roleName'])){
+                    $roles[] = strval($uginfo->properties->role['roleName']);
+                }else{
+                    foreach($uginfo->properties->permissions as $perm){
+                        $roles[] = strval($perm['permissionName']);
+                    }
+                }
+
+                $access[] = [
+                    'Id' => intval($uginfo->userOrGroup[$key .'Id']),
+                    'Name' => strval($uginfo->userOrGroup[$key .'Name']),
+                    'Roles' => $roles,
+                ];
+            }
+
+            $spacer = 0;
+            foreach($access as $a){
+                if(strlen($a['Name']) > $spacer){
+                    $spacer = strlen($a['Name']);
+                }
+            }
+
+            foreach($access as $a){
+                $str .= str_pad("", 4) .str_pad($a['Name'], $spacer);
+                $roltxt = "";
+                foreach($a['Roles'] as $role){
+                    $roltxt .= " - $role" ."\n" . str_pad("", 4 + $spacer);
+                }
+                $str .= " " .trim($roltxt) ."\n";
+            }
+            echo $str;
         }
     }
 
