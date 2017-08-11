@@ -239,6 +239,37 @@ class Commvault {
         return $job->jobs;
     }
 
+    public function jobAction($jobid, $action){
+        if(empty($this->url)){ return FALSE; }
+        $headers = array(
+            "Accept: application/xml",
+            "Authtoken: " .$this->token,
+            "Content-Length: 0"
+        );
+        $ch = curl_init($this->url . "Job/$jobid/action/$action");
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $result = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        try {
+            if($http_code == 401){ throw new Exception("TOKENAUTH"); }
+            if($result == "<JobManager_PerformJobOperationResp />"){ return TRUE; }
+            $xml = @simplexml_load_string($result);
+            return intval($xml->errors->errList['errorCode']);
+        } catch (Exception $e) {
+            if($e->getMessage() == "TOKENAUTH"){
+                echo "Token not authorized.\n";
+            }else{
+                echo "Not XML: $result";
+            }
+            die();
+        }
+    }
+
     public function getEvents($cli = NULL, $extra = array()){
         $data = array();
         if(!empty($cli)){
