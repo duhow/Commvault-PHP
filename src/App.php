@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0811.4";
+    private static $Version = "11.7.0811.5";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -764,7 +764,7 @@ class App {
             foreach($jobs as $job){
                 $date = date("d/m H:i", $job['jobStartTime']);
                 echo str_pad($job['jobID'], 8)
-                    .str_pad(strtoupper($job['StateName']), 9)
+                    .str_pad(strtoupper($job['StateName']), 10)
                     .str_pad($job['OperationType'] ." " .$job['JobType'], 19)
                     .str_pad("- " .$job['currentPhaseName'], 20)
                     .str_pad($job['clientName'], 30)
@@ -792,6 +792,10 @@ class App {
         $job = self::$Commvault->getJob($jobid);
         if(!isset($job->jobSummary)){
             die( self::$Lang['job_not_exist'] ."\n" );
+        }
+
+        if(in_array($output, ["kill", "resume", "suspend", "pause"])){
+            return self::job_action($jobid, $output);
         }
 
         $job = $job->jobSummary;
@@ -824,6 +828,15 @@ class App {
             echo strip_tags(strval($job['pendingReason']));
         }
         echo "\n";
+    }
+
+    private function job_action($jobid, $action){
+        if($action == "suspend"){ $action = "pause"; }
+        $res = self::$Commvault->jobAction($jobid, $action);
+        if($res !== TRUE){
+            echo self::$Lang['error_job_action'] ." [$res]" ."\n";
+            die();
+        }
     }
 
     public function storagepolicy($MA = NULL, $output = NULL){

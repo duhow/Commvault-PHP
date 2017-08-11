@@ -23,6 +23,7 @@ return array(
     'error_clientgroup_not_found' => 'El grupo de clientes no existe o no se ha encontrado.' ."\n",
     'error_token' => 'El token no es válido o ha expirado. Por favor, haz login primero.' ."\n",
     'error_library_exist' => 'La librería no existe.',
+    'error_job_action' => 'Ha ocurrido un error al realizar la acción con el trabajo.',
 
     'login_reconnect_host' => 'Reutilizando conexión previa:',
     'login_ok' => 'Login correcto, token guardado.',

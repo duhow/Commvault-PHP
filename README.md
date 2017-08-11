@@ -30,6 +30,7 @@ commvault storagepolicy            [ id | name | csv | json ]
           storagepolicy MEDIAAGENT [ id | name | csv | json ]
 
 commvault job JOBID
+          job JOBID [ kill | pause | resume ]
           jobs [ summary ]
 
 commvault log          [ info | minor | major | critical ]
