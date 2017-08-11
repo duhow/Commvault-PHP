@@ -20,6 +20,16 @@ $phar = $phar->convertToExecutable(Phar::PHAR);
 clog("Adding files ...");
 $phar->buildFromDirectory("src");
 
+
+if(is_dir(".git")){
+    $version = exec("git rev-parse HEAD");
+    $version = trim($version);
+    if(!empty($version)){
+        clog("Adding git version ...");
+        $phar->addFromString("version", $version);
+    }
+}
+
 clog("Creating stub ...");
 $stub = "#!/usr/bin/env php \n"
         .$phar->createDefaultStub("App.php");

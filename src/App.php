@@ -8,6 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
+    private static $Version = "11.7.0811.1";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -47,23 +48,34 @@ class App {
                 $str .= self::$Lang['help_ping_extended'];
             break;
 
+            case 'version':
+                $str = "Commvault-PHP " .self::$Version;
+                if(file_exists("version")){
+                    $git = file_get_contents("version");
+                    $str .= " git " .substr($git, 0, 7) ."+";
+                }
+            break;
+
             case 'help':
             default:
-                $str = sprintf(self::$Lang['help_usage'], basename($argv[0]), self::$Lang['command']) . "\n";
+                $str = self::help("version");
+                $str .= sprintf(self::$Lang['help_usage'], basename($argv[0]), self::$Lang['command']) . "\n";
 
                 $commands = [
-                    'ping', 'client', 'clients', 'clientgroup', 'library',
-                    'jobs', 'job'
+                    'client', 'clients', 'clientgroup', 'clientgroups',
+                    'ping', 'storagepolicy', 'library',
+                    'job', 'jobs', 'log',
+                    'login', 'logout'
                 ];
 
                 foreach($commands as $cmd){
-                    $str .= "\t" .str_pad($cmd, 15, " ", STR_PAD_RIGHT) .self::$Lang['help_' .$cmd] ."\n";
+                    $str .= str_pad("", 4) .str_pad($cmd, 15, " ", STR_PAD_RIGHT) .self::$Lang['help_' .$cmd] ."\n";
                 }
             break;
         }
 
         $str .= "\n";
-        return $str;
+        echo $str;
     }
 
     public function ping($client = NULL, $extra = "plain"){
@@ -1111,7 +1123,7 @@ if(count($argv) == 1){
 }
 
 $command = strtolower($argv[1]);
-if($command == "init" or !method_exists("App", $command)){
+if(in_array($command, ["init", "?"]) or !method_exists("App", $command)){
     die( App::help() );
 }
 

@@ -6,10 +6,15 @@ return array(
     'help_client' => 'Muestra información sobre un cliente.',
     'help_clients' => 'Muestra información de varios clientes.',
     'help_clientgroup' => 'Muestra información de un grupo de clientes.',
+    'help_clientgroups' => 'Muestra la lista de todos los grupos de clientes.',
+    'help_storagepolicy' => 'Muestra la lista de todas las políticas de almacenamiento.',
     'help_library' => 'Muestra las librerías disponibles.',
-    'help_jobs' => 'Muestra las tareas realizadas.',
-    'help_job' => 'Carga información de una tarea en concreto.',
-    'help_ping' => 'Permite comprobar que un cliente se encuentra disponible.',
+    'help_jobs' => 'Muestra las tareas en curso.',
+    'help_job' => 'Muestra información de una tarea en concreto.',
+    'help_log' => 'Muestra los últimos eventos procesados.',
+    'help_login' => 'Inicia sesión y genera un token para realizar consultas.',
+    'help_logout' => 'Cierra sesión y revoca el token.',
+    'help_ping' => 'Comprueba si un cliente se encuentra disponible.',
     'help_ping_extended' =>
         'Realiza una comprobación de conectividad hacia la máquina.' ."\n"
         .'Especifica nombre o ID de cliente.',
