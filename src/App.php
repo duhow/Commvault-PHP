@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0811.5";
+    private static $Version = "11.7.0811.6";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -951,17 +951,24 @@ class App {
 
         $extra = $client;
         $posible = [
-            "job", "lastid", "full",
+            "job", "lastid", "full", "monitor",
             "info", "minor", "major", "critical"
         ];
 
         if(in_array($client, $posible)){ $client = NULL; }
-        elseif(in_array($filter, $posible)){ $extra = $filter; }
+        if(in_array($filter, $posible)){ $extra = $filter; }
 
         // -------
 
         if(in_array($extra, ["full", "complete", "all"])){
             return self::log_full($client);
+        }elseif($extra == "monitor"){
+            self::log(); // Show current logs
+            $last = self::log("lastid");
+            if(!empty($filter) and !is_numeric($filter)){
+                $filter = 5;
+            }
+            self::log_monitor($last, $filter);
         }
 
         $conditions = array();
@@ -991,10 +998,11 @@ class App {
 
         if($extra == "lastid"){
             $event = array_pop($eventfinal);
-            die( intval($event['id']) ."\n" );
+            echo intval($event['id']) ."\n";
+            return intval($event['id']);
+        }else{
+            echo self::events_output($eventfinal, "text");
         }
-
-        echo self::events_output($eventfinal, "text");
     }
 
     private function log_full($client = NULL){
@@ -1017,6 +1025,19 @@ class App {
 
         ksort($events);
         echo self::events_output($events, "text");
+    }
+
+    private function log_monitor($lastid, $sleep = 5){
+        $events = self::events_get();
+        foreach($events as $event){
+            if($event['id'] > $lastid){
+                $lastid = $event['id'];
+                echo self::events_output([$event], "text");
+            }
+        }
+        sleep($sleep);
+        unset($events); // Optimize RAM
+        self::log_monitor($lastid, $sleep);
     }
 
     private function events_get($client = NULL, $conditions = array()){

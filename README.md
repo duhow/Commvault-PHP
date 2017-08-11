@@ -36,6 +36,7 @@ commvault job JOBID
 commvault log          [ info | minor | major | critical ]
           log MYSERVER [ info | minor | major | critical ]
           log lastid   [ info | minor | major | critical ]
+          log monitor
           log full
 
 commvault library
