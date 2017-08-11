@@ -339,6 +339,7 @@ class Commvault {
         curl_close($ch);
 
         try {
+            if($http_code == 401){ return FALSE; }
             if($this->debug){ var_dump($result); }
             return $result;
         } catch (Exception $e) {
