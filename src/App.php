@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0811.1";
+    private static $Version = "11.7.0811.2";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -300,15 +300,15 @@ class App {
             unset($tmp);
         }
 
-        if($filter == "size"){
-            return self::clientgroup_size($search);
-        }
-
         if(!is_numeric($search)){
             $search = self::$Commvault->getClientGroupId($search);
             if(!$search){
                 die( self::$Lang['error_clientgroup_not_found'] );
             }
+        }
+
+        if($filter == "size"){
+            return self::clientgroup_size($search, $output);
         }
 
         $cg = self::$Commvault->getClientGroup($search);
@@ -363,8 +363,59 @@ class App {
         return self::generic_export_keyval($clis, $output);
     }
 
-    private function clientgroup_size($cgid){
+    private function clientgroup_size($cgid, $output = "text"){
+        $showall = FALSE;
+        if(empty($output)){ $output = "text"; }
+        elseif($output == "all"){
+            $output = "text";
+            $showall = TRUE;
+        }
+        $clients = self::$Commvault->getClientGroupClients($cgid);
 
+        $spacer = 0;
+        foreach($clients as $id => $name){
+            if(strlen($name) > $spacer){
+                $spacer = strlen($name);
+            }
+        }
+
+        if($output == "text"){
+            echo sprintf(self::$Lang['clientgroup_processing_amount'], count($clients)) ."\n";
+        }
+
+        foreach($clients as $id => $name){
+            $sizes = self::client_size($id, TRUE);
+            $clients[$id] = [
+                'clientId' => $id,
+                'clientName' => $name,
+                'sizeOfApplication' => $sizes[0],
+                'sizeOfMediaOnDisk' => $sizes[1],
+            ];
+            if($output == "csv"){
+                echo implode(";", $clients[$id]) ."\n";
+            }elseif($output == "text"){
+                echo str_pad($name, $spacer + 4)
+                    .str_pad(self::parserSize($sizes[1], "GB"), 9, " ", STR_PAD_LEFT) ." GB";
+                if($showall){
+                    echo str_pad(self::parserSize($sizes[0], "GB"), 11, " ", STR_PAD_LEFT) ." GB";
+                }
+                echo "\n";
+            }
+        }
+
+        if($output == "text"){
+            // TOTAL
+            $size = array_sum(array_column($clients, 'sizeOfMediaOnDisk'));
+            echo str_pad("TOTAL", $spacer + 4)
+                .str_pad(self::parserSize($size, "GB"), 9, " ", STR_PAD_LEFT) ." GB";
+            if($showall){
+                $size = array_sum(array_column($clients, 'sizeOfApplication'));
+                echo str_pad(self::parserSize($size, "GB"), 12, " ", STR_PAD_LEFT) ." GB";
+            }
+            echo "\n";
+        }elseif($output == "json"){
+            echo json_encode($clients, JSON_PRETTY_PRINT) ."\n";
+        }
     }
 
     public function clientgroups($output = NULL){

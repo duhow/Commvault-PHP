@@ -18,8 +18,11 @@ commvault client [ list | all ] [ id | name | csv | json ]
 commvault ping             [ MYSERVER   | id ]
           ping clientgroup [ MYCLIGROUP | id ]
 
-commvault clientgroup MYCLIGROUP [ clients | proxies ] [ id | name | csv | json ]
-          clientgroups             [ id | name | csv | json ]
+commvault clientgroups                   [ id | name | csv | json ]
+
+commvault clientgroup MYCLIGROUP clients [ id | name | csv | json ]
+          clientgroup MYCLIGROUP proxies [ id | name | csv | json ]
+          clientgroup MYCLIGROUP size    [ csv | json ]
 
 commvault storagepolicy            [ id | name | csv | json ]
           storagepolicy MEDIAAGENT [ id | name | csv | json ]

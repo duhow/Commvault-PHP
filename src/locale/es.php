@@ -35,6 +35,7 @@ return array(
     'bytes_total' => 'Espacio total',
     'percentage' => 'Porcentaje',
 
+    'clientgroup_processing_amount' => 'Procesando %s clientes ...',
     'client_ping_ok' => 'El cliente %s tiene conexión.',
 
     'client_displayName' => 'Nombre de cliente',
