@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0811.2";
+    private static $Version = "11.7.0811.3";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -183,6 +183,10 @@ class App {
             }
             echo "\n";
         }
+    }
+
+    public function clients($output = NULL){
+        return self::client("all", $output);
     }
 
     public function client($search = NULL, $extra = NULL){

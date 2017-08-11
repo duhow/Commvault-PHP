@@ -8,6 +8,8 @@ commvault login HOSTNAME
           login USERNAME PASSWORD HOSTNAME
           logout
 
+commvault clients               [ id | name | csv | json ]
+
 commvault client [ list | all ] [ id | name | csv | json ]
           client MYSERVER id
           client MYSERVER status
