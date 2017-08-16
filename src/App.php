@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0816.1";
+    private static $Version = "11.7.0816.2";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -802,15 +802,25 @@ class App {
         }else{
             echo "JOB #" .$job['jobId'] ." - " .$job['percentComplete'] ."% " .$job['status'] ."\n"
                 ."CLI #" .$job->subclient['clientId'] ." - " .$job->subclient['clientName'] ."\n"
-                .$job['jobType']." " .$job['backupLevelName']." " .$job['appTypeName'] ."\n"
-                .date("d/m/y H:i", intval($job['jobStartTime'])) ." - " .date("d/m/y H:i", intval($job['lastUpdateTime']))
-                ." (" .gmdate("H:i:s", intval($job['jobElapsedTime'])) .")\n";
+                .$job['jobType']." " .$job['backupLevelName']." " .$job['appTypeName'] ."\n";
+                if(intval($job['jobStartTime']) > 0){
+                    echo date("d/m/y H:i", intval($job['jobStartTime']));
+                }
+                if(intval($job['lastUpdateTime']) > 0){
+                    echo " - " .date("d/m/y H:i", intval($job['lastUpdateTime']));
+                }
+                if(intval($job['jobElapsedTime']) > 0){
+                    echo " (" .gmdate("H:i:s", intval($job['jobElapsedTime'])) .")";
+                }
+                echo "\n";
 
             if($job['jobType'] == "Backup"){
-                echo self::parserSize($job['sizeOfApplication'], "GB") ." GB -> "
-                    .self::parserSize($job['sizeOfMediaOnDisk'], "GB") ." GB (-"
-                    .number_format(floatval($job['percentSavings']), 2) ."%)"
-                    ."\n";
+                if(intval($job['sizeOfApplication']) > 0){
+                    echo self::parserSize($job['sizeOfApplication'], "GB") ." GB -> "
+                        .self::parserSize($job['sizeOfMediaOnDisk'], "GB") ." GB (-"
+                        .number_format(floatval($job['percentSavings']), 2) ."%)"
+                        ."\n";
+                }
 
                 $files = array();
                 if($job['totalFailedFiles'] > 0){
@@ -822,7 +832,9 @@ class App {
                 if($job['totalNumOfFiles'] > 0){
                     $files[] = "A: " .$job['totalNumOfFiles'];
                 }
-                echo implode(", ", $files);
+                if(!empty($files)){
+                    echo implode(", ", $files) ."\n";
+                }
             }
 
             if(isset($job['pendingReason']) and !empty($job['pendingReason'])){
