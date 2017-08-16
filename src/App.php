@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0816.3";
+    private static $Version = "11.7.0816.4";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -80,11 +80,12 @@ class App {
 
     public function ping($client = NULL, $extra = "plain"){
         if(empty($client)){
-            die( self::help("ping") );
+            return self::help("ping");
         }
 
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $posible = ["plain", "summary", "sm", "html", "detail", "detailed", "dt", "clientgroup", "group"];
@@ -110,7 +111,8 @@ class App {
             $client = self::$Commvault->getClient($client);
             $client = strval($client->clientProperties->client['displayName']);
             if(!$client){
-                die( self::$Lang['error_code_2'] ."\n" );
+                echo self::$Lang['error_code_2'] ."\n";
+                return FALSE;
             }
             $name = $client;
         }
@@ -151,7 +153,7 @@ class App {
         $clients = self::$Commvault->getClientGroupClients($cgid);
         if(!$clients){
             echo self::$Lang['error_clientgroup_not_found'];
-            die();
+            return FALSE;
         }
 
         $spacer = 0;
@@ -191,11 +193,12 @@ class App {
 
     public function client($search = NULL, $extra = NULL){
         if(empty($search)){
-            die( self::help("client") );
+            return self::help("client");
         }
 
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         if(in_array($search, ["all", "list"])){
@@ -224,7 +227,8 @@ class App {
 
             $sizes = self::client_size($search, TRUE);
             if(empty($sizes)){
-                die( self::$Lang['error_client_no_jobs'] );
+                echo self::$Lang['error_client_no_jobs'] ."\n";
+                return NULL;
             }
             $spacer = strlen(max($sizes));
             $spacergb = strlen(self::parserSize(max($sizes), "GB"));
@@ -235,7 +239,7 @@ class App {
                     .str_pad(self::parserSize($sizes[0], "GB"), $spacergb, " ", STR_PAD_LEFT) ." GB\n"
                 ."Disk: " .str_pad($sizes[1], $spacer, " ", STR_PAD_LEFT) ." / "
                     .str_pad(self::parserSize($sizes[1], "GB"), $spacergb, " ", STR_PAD_LEFT) ." GB ($percentage%)\n";
-            die();
+            return TRUE;
         }elseif(in_array($extra, ["jobs", "lastjob"])){
             if(!is_numeric($search)){
                 $search = self::$Commvault->getClientId($search);
@@ -247,15 +251,16 @@ class App {
 
         $cli = self::$Commvault->getClient($search);
         if(empty($cli) or !isset($cli->clientProperties)){
-            die( self::$Lang['error_client_not_found'] );
+            echo self::$Lang['error_client_not_found'];
+            return NULL;
         }
 
         if($extra == "json"){
-            die( json_encode( $cli, JSON_PRETTY_PRINT) );
+            echo json_encode( $cli, JSON_PRETTY_PRINT);
         }elseif($extra == "xml"){
-            die( $cli->asXML() );
+            echo $cli->asXML();
         }elseif($extra == "id"){
-            die( strval($cli->clientProperties->client->clientEntity['clientId']) ."\n" );
+            echo strval($cli->clientProperties->client->clientEntity['clientId']) ."\n";
         }elseif($extra == "summary" or empty($extra)){
             $prop = $cli->clientProperties;
             $str = str_pad(self::$Lang['client_displayName'] .":", 24) ."#" .strval($prop->client->clientEntity['clientId']) ." " .strval($prop->client['displayName']) ."\n"
@@ -283,17 +288,18 @@ class App {
             // Description
 
             $str .= "\n";
-            die( $str );
+            echo $str;
         }
     }
 
     public function clientgroup($search = NULL, $filter = NULL, $output = NULL){
         if(empty($search)){
-            die( self::help("clientgroup") );
+            return self::help("clientgroup");
         }
 
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $posible = ["clients", "proxies", "size"];
@@ -312,7 +318,8 @@ class App {
         if(!is_numeric($search)){
             $search = self::$Commvault->getClientGroupId($search);
             if(!$search){
-                die( self::$Lang['error_clientgroup_not_found'] );
+                echo self::$Lang['error_clientgroup_not_found'];
+                return FALSE;
             }
         }
 
@@ -323,7 +330,8 @@ class App {
         $cg = self::$Commvault->getClientGroup($search);
         if(!$cg){
             if(!$search){
-                die( self::$Lang['error_clientgroup_not_found'] );
+                echo self::$Lang['error_clientgroup_not_found'];
+                return FALSE;
             }
         }
 
@@ -478,7 +486,8 @@ class App {
 
     public function clientgroups($output = NULL){
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         return self::clientgroup_list($output);
@@ -493,7 +502,8 @@ class App {
 
     public function library($search = NULL, $extra = NULL){
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $posible = ["size", "jobs", "csv", "json", "text"];
@@ -519,7 +529,8 @@ class App {
             $libraries = self::$Commvault->getLibrary();
             $k = array_search($search, $libraries);
             if($k === FALSE){
-                die( self::$Lang['error_library_exist'] ."\n" );
+                echo self::$Lang['error_library_exist'] ."\n";
+                return FALSE;
             }
             $search = $k;
         }
@@ -656,7 +667,8 @@ class App {
         }
 
         /* if($output == "text"){
-            die( implode("\n", $jobstxt) ."\n" );
+            echo implode("\n", $jobstxt) ."\n";
+            return NULL;
         } */
 
         $lib = self::$Commvault->getLibrary($libname);
@@ -711,7 +723,8 @@ class App {
 
     public function jobs($client = NULL){
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $actions = ["kill", "resume", "suspend", "pause"];
@@ -745,7 +758,10 @@ class App {
             }
         }elseif(empty($client)){
             $jobs = self::$Commvault->QCommand("qoperation execscript -sn GetAllRunningJobs");
-            if($jobs === FALSE){ die( self::$Lang['error_token'] ); }
+            if($jobs === FALSE){
+                echo self::$Lang['error_token'] ."\n";
+                return FALSE;
+            }
 
             $xml = simplexml_load_string($jobs);
 
@@ -786,11 +802,12 @@ class App {
 
     public function job($jobid, $output = NULL){
         if(empty($jobid)){
-            die( self::help("job") );
+            return self::help("job");
         }
 
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $actions = ["kill", "resume", "suspend", "pause"];
@@ -801,7 +818,8 @@ class App {
 
         $job = self::$Commvault->getJob($jobid);
         if(!isset($job->jobSummary)){
-            die( self::$Lang['job_not_exist'] ."\n" );
+            echo self::$Lang['job_not_exist'] ."\n";
+            return NULL;
         }
 
         $job = $job->jobSummary;
@@ -859,20 +877,21 @@ class App {
         $res = self::$Commvault->jobAction($jobid, $action);
         if($res !== TRUE){
             echo self::$Lang['error_job_action'] ." [$res]" ."\n";
-            die();
+            return FALSE;
         }
     }
 
     private function jobs_action($action){
         if($action == "suspend"){ $action = "pause"; }
-        if(!self::confirm_user()){ die(); }
+        if(!self::confirm_user()){ return FALSE; }
         $res = self::$Commvault->QCommand("qoperation jobcontrol -all -o $action");
         echo $res ."\n"; // TODO Debug output
     }
 
     public function storagepolicy($MA = NULL, $output = NULL){
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $posible = ["text", "id", "ids", "name", "names", "json", "csv"];
@@ -910,7 +929,10 @@ class App {
 
     private function client_jobs($clientid){
         $jobs = self::$Commvault->getClientJobs($clientid);
-        if(empty($jobs)){ die( self::$Lang['error_client_no_jobs'] ); }
+        if(empty($jobs)){
+            echo self::$Lang['error_client_no_jobs'];
+            return FALSE;
+        }
 
         $status = array();
         foreach($jobs as $job){
@@ -977,7 +999,8 @@ class App {
 
     public function log($client = NULL, $filter = NULL){
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $extra = $client;
@@ -1156,7 +1179,7 @@ class App {
 
         $login = self::$Commvault->login();
         if($login !== TRUE){
-            die();
+            return FALSE;
         }
 
         $token = trim(substr(self::$Commvault->getToken(), 4)) ."0";
@@ -1173,17 +1196,48 @@ class App {
         chmod($path, 0600);
 
         if(file_exists($path) and is_readable($path)){
-            die(self::$Lang['login_ok'] ."\n");
+            echo self::$Lang['login_ok'] ."\n";
         }
     }
 
     public function logout(){
         if(!self::load_token()){
-            die( self::$Lang['error_token'] );
+            echo self::$Lang['error_token'];
+            return FALSE;
         }
 
         $query = self::$Commvault->logout();
         unlink(self::$ConfigFile);
+    }
+
+    public function console(){
+        $exit = ["exit", "quit", "close"];
+        $qcoms = ["qlist", "qoperation"];
+        $command = NULL;
+        while(!in_array($command, $exit)){
+            $argv = readline("> ");
+            $command = explode(" ", $argv);
+            $callback = $command;
+
+            if(is_array($command)){
+                array_shift($callback); // Remove command
+                $command = $command[0];
+            }
+
+            if(in_array($command, $exit)){ continue; }
+            if(!method_exists("App", $command)){
+                echo self::$Lang['unknown_command'] ."\n";
+                continue;
+            }
+
+            $r = new ReflectionMethod("App", $command);
+            if(!$r->isPublic()){
+                echo self::$Lang['unknown_command'] ."\n";
+                continue;
+            }
+
+            call_user_func_array(array("App", $command), $callback);
+        }
     }
 
     private function confirm_user(){
