@@ -62,6 +62,7 @@ return array(
     'user_confirm_yes_multi' => ['si', 'ok', 'vale', 'bien', 'yes', 's', 'y'],
     'user_confirm_no' => 'no',
     'user_confirm_no_multi' => ['no', 'nah', 'nop', 'nada', 'n'],
+    'unknown_command' => 'Comando desconocido.',
 
     'job_not_exist' => 'El trabajo indicado no existe.',
 

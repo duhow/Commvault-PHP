@@ -4,6 +4,8 @@ Ejecuta comandos en **Commvault** usando REST API.
 Los comandos disponibles actualmente son:
 
 ```
+commvault console
+
 commvault login HOSTNAME
           login USERNAME PASSWORD HOSTNAME
           logout
