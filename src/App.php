@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0816.4";
+    private static $Version = "11.7.0816.5";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -1212,10 +1212,14 @@ class App {
 
     public function console(){
         $exit = ["exit", "quit", "close"];
-        $qcoms = ["qlist", "qoperation"];
+        $qcoms = [
+            "qcreate", "qdelete", "qmodify", "qlist",
+            "qmedia", "qinfo", "qoperation", "qdrive"
+        ];
         $command = NULL;
         while(!in_array($command, $exit)){
-            $argv = readline("> ");
+            $argv = trim(readline("> "));
+            if(empty($argv)){ continue; } // Empty enter
             $command = explode(" ", $argv);
             $callback = $command;
 
@@ -1225,6 +1229,10 @@ class App {
             }
 
             if(in_array($command, $exit)){ continue; }
+            if(in_array($command, $qcoms)){
+                echo self::command($argv) ."\n";
+                continue;
+            }
             if(!method_exists("App", $command)){
                 echo self::$Lang['unknown_command'] ."\n";
                 continue;
@@ -1238,6 +1246,16 @@ class App {
 
             call_user_func_array(array("App", $command), $callback);
         }
+    }
+
+    private function command($text = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+
+        if(is_array($text)){ $text = implode(" ", $text); }
+        return self::$Commvault->QCommand($text);
     }
 
     private function confirm_user(){
