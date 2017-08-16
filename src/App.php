@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0816.5";
+    private static $Version = "11.7.0816.6";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -838,7 +838,10 @@ class App {
                     echo " - " .date("d/m/y H:i", intval($job['lastUpdateTime']));
                 }
                 if(intval($job['jobElapsedTime']) > 0){
-                    echo " (" .gmdate("H:i:s", intval($job['jobElapsedTime'])) .")";
+                    $time = intval($job['jobElapsedTime']);
+                    $days = "";
+                    if($time > 86400){ $days = floor($time / 86400) ."d "; }
+                    echo " ($days" .gmdate("H:i:s", $time) .")";
                 }
                 echo "\n";
 
@@ -964,7 +967,11 @@ class App {
         echo self::$Lang['lastjob'] ." #$job->jobId - $job->status\n"
             ."$job->jobType $job->backupLevelName $job->appTypeName\n"
             .date("d/m/y H:i", $job->jobStartTime) ." - " .date("d/m/y H:i", $job->lastUpdateTime)
-            ." (" .gmdate("H:i:s", $job->jobElapsedTime) .")\n"
+            ." (";
+            if(intval($job->jobElapsedTime) > 86400){
+                echo floor($job->jobElapsedTime / 86400) ."d ";
+            }
+            echo gmdate("H:i:s", $job->jobElapsedTime) .")\n"
             ."\n";
     }
 
