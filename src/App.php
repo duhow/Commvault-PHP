@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0811.6";
+    private static $Version = "11.7.0816.1";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -794,40 +794,42 @@ class App {
             die( self::$Lang['job_not_exist'] ."\n" );
         }
 
-        if(in_array($output, ["kill", "resume", "suspend", "pause"])){
-            return self::job_action($jobid, $output);
-        }
-
         $job = $job->jobSummary;
-        echo "JOB #" .$job['jobId'] ." - " .$job['percentComplete'] ."% " .$job['status'] ."\n"
-            ."CLI #" .$job->subclient['clientId'] ." - " .$job->subclient['clientName'] ."\n"
-            .$job['jobType']." " .$job['backupLevelName']." " .$job['appTypeName'] ."\n"
-            .date("d/m/y H:i", intval($job['jobStartTime'])) ." - " .date("d/m/y H:i", intval($job['lastUpdateTime']))
-            ." (" .gmdate("H:i:s", intval($job['jobElapsedTime'])) .")\n";
+        if($output == "xml"){
+            echo $job->asXML() ."\n";
+        }elseif(in_array($output, ["kill", "resume", "suspend", "pause"])){
+            return self::job_action($jobid, $output);
+        }else{
+            echo "JOB #" .$job['jobId'] ." - " .$job['percentComplete'] ."% " .$job['status'] ."\n"
+                ."CLI #" .$job->subclient['clientId'] ." - " .$job->subclient['clientName'] ."\n"
+                .$job['jobType']." " .$job['backupLevelName']." " .$job['appTypeName'] ."\n"
+                .date("d/m/y H:i", intval($job['jobStartTime'])) ." - " .date("d/m/y H:i", intval($job['lastUpdateTime']))
+                ." (" .gmdate("H:i:s", intval($job['jobElapsedTime'])) .")\n";
 
-        if($job['jobType'] == "Backup"){
-            echo self::parserSize($job['sizeOfApplication'], "GB") ." GB -> "
-                .self::parserSize($job['sizeOfMediaOnDisk'], "GB") ." GB (-"
-                .number_format(floatval($job['percentSavings']), 2) ."%)"
-                ."\n";
+            if($job['jobType'] == "Backup"){
+                echo self::parserSize($job['sizeOfApplication'], "GB") ." GB -> "
+                    .self::parserSize($job['sizeOfMediaOnDisk'], "GB") ." GB (-"
+                    .number_format(floatval($job['percentSavings']), 2) ."%)"
+                    ."\n";
 
-            $files = array();
-            if($job['totalFailedFiles'] > 0){
-                $files[] = "F: " .$job['totalFailedFiles'];
+                $files = array();
+                if($job['totalFailedFiles'] > 0){
+                    $files[] = "F: " .$job['totalFailedFiles'];
+                }
+                if($job['totalFailedFolders'] > 0){
+                    $files[] = "D: " .$job['totalFailedFolders'];
+                }
+                if($job['totalNumOfFiles'] > 0){
+                    $files[] = "A: " .$job['totalNumOfFiles'];
+                }
+                echo implode(", ", $files);
             }
-            if($job['totalFailedFolders'] > 0){
-                $files[] = "D: " .$job['totalFailedFolders'];
+
+            if(isset($job['pendingReason']) and !empty($job['pendingReason'])){
+                echo strip_tags(strval($job['pendingReason']));
             }
-            if($job['totalNumOfFiles'] > 0){
-                $files[] = "A: " .$job['totalNumOfFiles'];
-            }
-            echo implode(", ", $files);
+            echo "\n";
         }
-
-        if(isset($job['pendingReason']) and !empty($job['pendingReason'])){
-            echo strip_tags(strval($job['pendingReason']));
-        }
-        echo "\n";
     }
 
     private function job_action($jobid, $action){
