@@ -29,9 +29,10 @@ commvault clientgroup MYCLIGROUP clients [ id | name | csv | json ]
 commvault storagepolicy            [ id | name | csv | json ]
           storagepolicy MEDIAAGENT [ id | name | csv | json ]
 
-commvault job JOBID
+commvault job JOBID [ xml ]
           job JOBID [ kill | pause | resume ]
-          jobs [ summary ]
+          jobs      [ kill | pause | resume ]
+          jobs      [ summary ]
 
 commvault log          [ info | minor | major | critical ]
           log MYSERVER [ info | minor | major | critical ]

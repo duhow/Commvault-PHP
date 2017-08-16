@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0816.2";
+    private static $Version = "11.7.0816.3";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -714,7 +714,11 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
-        if(in_array($client, ["count", "summary"])){
+        $actions = ["kill", "resume", "suspend", "pause"];
+
+        if(in_array($client, $actions)){
+            return self::jobs_action($client);
+        }elseif(in_array($client, ["count", "summary"])){
             $jobs = self::$Commvault->QCommand("qlist jobsummary -c ");
 
             // Separate string
@@ -789,6 +793,12 @@ class App {
             die( self::$Lang['error_token'] );
         }
 
+        $actions = ["kill", "resume", "suspend", "pause"];
+
+        if($jobid == "all" and in_array($output, $actions)){
+            return self::jobs_action($output);
+        }
+
         $job = self::$Commvault->getJob($jobid);
         if(!isset($job->jobSummary)){
             die( self::$Lang['job_not_exist'] ."\n" );
@@ -797,7 +807,7 @@ class App {
         $job = $job->jobSummary;
         if($output == "xml"){
             echo $job->asXML() ."\n";
-        }elseif(in_array($output, ["kill", "resume", "suspend", "pause"])){
+        }elseif(in_array($output, $actions)){
             return self::job_action($jobid, $output);
         }else{
             echo "JOB #" .$job['jobId'] ." - " .$job['percentComplete'] ."% " .$job['status'] ."\n"
@@ -851,6 +861,13 @@ class App {
             echo self::$Lang['error_job_action'] ." [$res]" ."\n";
             die();
         }
+    }
+
+    private function jobs_action($action){
+        if($action == "suspend"){ $action = "pause"; }
+        if(!self::confirm_user()){ die(); }
+        $res = self::$Commvault->QCommand("qoperation jobcontrol -all -o $action");
+        echo $res ."\n"; // TODO Debug output
     }
 
     public function storagepolicy($MA = NULL, $output = NULL){
@@ -1167,6 +1184,32 @@ class App {
 
         $query = self::$Commvault->logout();
         unlink(self::$ConfigFile);
+    }
+
+    private function confirm_user(){
+        $confirm = NULL;
+        while($confirm === NULL){
+            $confirm = readline(self::$Lang['user_confirm']);
+            $confirm = strtolower($confirm);
+            $yes = self::$Lang['user_confirm_yes'];
+            $no = self::$Lang['user_confirm_no'];
+            if(
+                $confirm == $yes or
+                in_array($confirm, self::$Lang['user_confirm_yes_multi']) or
+                substr($confirm, 0, 1) == substr($yes, 0, 1)
+            ){
+                $confirm = TRUE;
+            }elseif(
+                $confirm == $no or
+                in_array($confirm, self::$Lang['user_confirm_no_multi']) or
+                substr($confirm, 0, 1) == substr($no, 0, 1)
+            ){
+                $confirm = FALSE;
+            }else{
+                $confirm = NULL;
+            }
+        }
+        return $confirm;
     }
 
     private function generic_export_array($array, $output){

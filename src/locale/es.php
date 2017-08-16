@@ -57,6 +57,12 @@ return array(
     'library_backupgiga' => 'GB por 1/24h:',
     'library_freespace' => 'Espacio libre:',
 
+    'user_confirm' => 'Por favor, confirma la acción. [S/N] ',
+    'user_confirm_yes' => 'si',
+    'user_confirm_yes_multi' => ['si', 'ok', 'vale', 'bien', 'yes', 's', 'y'],
+    'user_confirm_no' => 'no',
+    'user_confirm_no_multi' => ['no', 'nah', 'nop', 'nada', 'n'],
+
     'job_not_exist' => 'El trabajo indicado no existe.',
 
     'error_code_2' => 'El cliente no existe.',
