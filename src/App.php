@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0816.6";
+    private static $Version = "11.7.0817.1";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -656,6 +656,14 @@ class App {
     }
 
     private function library_jobs($libname, $output = "text"){
+        if(is_numeric($libname)){
+            $lib = self::$Commvault->getLibrary($libname);
+            if(!$lib or isset($lib['errorCode'])){
+                echo self::$Lang['error_library_exist'] ."\n";
+                return;
+            }
+            $libname = strval($lib->libraryInfo->library['libraryName']);
+        }
         $command = self::$Commvault->QCommand("qoperation execscript -sn QS_FindJobsOnStore -si 0 -si '$libname'");
         $xml = simplexml_load_string($command);
         $jobstxt = array();
@@ -692,7 +700,7 @@ class App {
                 'storeId'           => $data[3],
                 'clientName'        => $data[4],
                 'mountPathName'     => $data[5],
-                'deviceName'        => $devn[$data[6]],
+                'deviceName'        => @$devn[$data[6]], // Posible undefinex index
             ];
         }
 
