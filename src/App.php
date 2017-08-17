@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0817.1";
+    private static $Version = "11.7.0817.2";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -19,6 +19,7 @@ class App {
     private function load_token(){
         $path = self::$ConfigFile;
         if(!file_exists($path) or !is_readable($path)){ return FALSE; }
+        if(filemtime($path) + 3600 < time()){ return FALSE; }
 
         $conf = parse_ini_file($path);
         if(!$conf){ return FALSE; }
@@ -32,6 +33,7 @@ class App {
         self::$Commvault->setToken($token);
 
         self::$Config = $conf;
+        touch($path);
 
         return TRUE;
     }
@@ -1173,17 +1175,26 @@ class App {
         }
 
         if(empty($username)){
-            $username = readline(self::$Lang['input_username'] ." ");
+            if(isset(self::$Config['username'])){
+                $username = self::$Config['username'];
+                echo self::$Lang['input_username'] ." $username\n";
+            }else{
+                $username = readline(self::$Lang['input_username'] ." ");
+            }
         }
 
         if(empty($password)){
-            echo self::$Lang['input_password'] ." ";
+            if(isset(self::$Config['password'])){
+                $password = base64_decode(self::$Config['password']);
+            }else{
+                echo self::$Lang['input_password'] ." ";
 
-            system('stty -echo');
-            $password = trim(fgets(STDIN));
-            system('stty echo');
+                system('stty -echo');
+                $password = trim(fgets(STDIN));
+                system('stty echo');
 
-            echo "\n";
+                echo "\n";
+            }
         }
 
         self::$Commvault->username = $username;
@@ -1200,8 +1211,25 @@ class App {
         $token = trim(substr(self::$Commvault->getToken(), 4)) ."0";
         $token = base64_encode(hex2bin($token));
 
-        $conf = str_pad("url", 10)    ."= $host\n"
-                .str_pad("token", 10) ."= $token\n";
+        self::$Config['url'] = $host;
+        self::$Config['token'] = $token;
+
+        if(isset(self::$Config['password'])){
+            // HACK for Ini file and B64 encoding
+            self::$Config['password'] = '"' .self::$Config['password'] .'"';
+        }
+
+        $conf = "";
+        $spacer = 8;
+        foreach(self::$Config as $field => $val){
+            if(strlen($field) > $spacer){
+                $spacer = strlen($field);
+            }
+        }
+        $spacer = ($spacer + 2);
+        foreach(self::$Config as $field => $val){
+            $conf .= str_pad($field, $spacer) ."= $val\n";
+        }
 
         $path = self::$ConfigFile;
         if(!is_dir(dirname($path))){
