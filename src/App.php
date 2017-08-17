@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0817.2";
+    private static $Version = "11.7.0817.3";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -209,7 +209,7 @@ class App {
 
         $posible = [
             "json", "xml", "summary",
-            "id", "status", "jobs", "lastjob", "size"
+            "id", "status", "ping", "jobs", "lastjob", "size"
         ];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
@@ -220,7 +220,7 @@ class App {
         }
 
         // Ping
-        if($extra == "status"){
+        if(in_array($extra, ["status", "ping"])){
             return self::ping($search);
         }elseif($extra == "size"){
             if(!is_numeric($search)){
@@ -976,13 +976,22 @@ class App {
 
         echo self::$Lang['lastjob'] ." #$job->jobId - $job->status\n"
             ."$job->jobType $job->backupLevelName $job->appTypeName\n"
-            .date("d/m/y H:i", $job->jobStartTime) ." - " .date("d/m/y H:i", $job->lastUpdateTime)
-            ." (";
-            if(intval($job->jobElapsedTime) > 86400){
-                echo floor($job->jobElapsedTime / 86400) ."d ";
+            .date("d/m/y H:i", $job->jobStartTime);
+            if(intval($job->lastUpdateTime) > 0){
+                echo " - " .date("d/m/y H:i", $job->lastUpdateTime);
             }
-            echo gmdate("H:i:s", $job->jobElapsedTime) .")\n"
-            ."\n";
+            if(intval($job->jobElapsedTime) > 0){
+                echo " (";
+                if(intval($job->jobElapsedTime) > 86400){
+                    echo floor($job->jobElapsedTime / 86400) ."d ";
+                }
+                echo gmdate("H:i:s", $job->jobElapsedTime) .")";
+            }
+            echo "\n";
+        if(isset($job->pendingReason)){
+            echo $job->pendingReason ."\n";
+        }
+        echo "\n";
     }
 
     private function client_size($clientid, $all = FALSE){
