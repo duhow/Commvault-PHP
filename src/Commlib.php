@@ -92,6 +92,38 @@ class Commvault {
         return $storage;
     }
 
+    public function getDriveController($id){
+        $drive = $this->query("DriveController?MountPathId=$id");
+        if(!$drive or isset($drive['errorCode'])){ return NULL; }
+        return $drive->mountPathInfo;
+    }
+
+    public function getDrivesSpace($library, $all = FALSE){
+        $lib = $this->getLibrary($library);
+        if(!$lib){ return FALSE; }
+        $drives = array();
+        $ids = array();
+        $spaces = array();
+
+        // MountPathId may be duplicated
+        foreach($lib->libraryInfo->MountPathList as $mount){
+            $ids[] = intval($mount['mountPathId']);
+        }
+        $ids = array_unique($ids);
+
+        foreach($ids as $id){ $drives[] = $this->getDriveController($id); }
+        foreach($drives as $drive){
+            $id = intval($drive['mountPathId']);
+            $free = intval($drive->mountPathSummary['totalFreeSpace']) * 1024 * 1024; // to bytes
+            $total = intval($drive->mountPathSummary['totalSpace']) * 1024 * 1024; // to bytes
+            $spaces[$id] = ['id' => $id, 'free' => $free, 'total' => $total];
+        }
+        if(!$all){
+            return array_column($spaces, 'free', 'id');
+        }
+        return $spaces;
+    }
+
     public function detectTape($MA = NULL){
         if(is_array($MA)){ $MA = implode(",", $MA); }
         $body = '<CVGui_EZGetTapeLibrariesReq autoDetect="1">'
