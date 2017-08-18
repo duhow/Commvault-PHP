@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0818.2";
+    private static $Version = "11.7.0818.3";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -519,6 +519,8 @@ class App {
         // Por defecto mostrar todas las librerias
         if($search == "sizes"){
             return self::library_sizes($extra);
+        }elseif($search == "drives"){
+            return self::library_drives($extra);
         }elseif($extra == "jobs" and !empty($search)){
             return self::library_jobs($search);
         }elseif(empty($search)){
@@ -662,6 +664,86 @@ class App {
                 ];
             }
             echo json_encode($data, JSON_PRETTY_PRINT);
+        }
+    }
+
+    private function library_drives($output = "text"){
+        if(empty($output)){ $output = "text"; }
+
+        $libs = self::$Commvault->getLibrary();
+        $drivesId = array();
+        $drives = array();
+        $drivesParsed = array();
+
+        $c = 1;
+        foreach($libs as $lib){
+            if(in_array($output, ["text", "bar"])){
+                echo "\r[" . self::progressbar($c++, count($libs), 24) ."]";
+            }
+            $libInfo = self::$Commvault->getLibrary($lib);
+            foreach($libInfo->libraryInfo->MountPathList as $mpl){
+                $drivesId[] = intval($mpl['mountPathId']);
+            }
+        }
+        $drivesId = array_unique($drivesId);
+        sort($drivesId);
+
+        $c = 1;
+        foreach($drivesId as $id){
+            if(in_array($output, ["text", "bar"])){
+                echo "\r[" . self::progressbar($c++, count($drivesId), 24) ."]";
+            }
+            $drives[$id] = self::$Commvault->getDriveController($id);
+        }
+        if(in_array($output, ["text", "bar"])){
+            echo "\r" .str_pad(" ", 28) ."\r";
+        }
+
+        $spacer = 0;
+        foreach($drives as $id => $drive){
+            $data = [
+                'id' => $id,
+                'name' => strval($drive->mountPathSummary['libraryName']),
+                'free' => intval($drive->mountPathSummary['totalFreeSpace']) * 1024 * 1024,
+                'total' => intval($drive->mountPathSummary['totalSpace']) * 1024 * 1024
+            ];
+            $data['used'] = $data['total'] - $data['free'];
+            $data['percent'] = number_format($data['used'] / $data['total'] * 100, 2);
+
+            $drivesParsed[$id] = $data;
+
+            if(strlen($data['name']) > $spacer){
+                $spacer = strlen($data['name']);
+            }
+        }
+        $spacer++;
+
+        if($output == "text"){
+            foreach($drivesParsed as $id => $drive){
+                echo str_pad($drive['name'], $spacer + 4)
+                    .str_pad($drive['percent'], 5, " ", STR_PAD_LEFT) ."% - "
+                    .str_pad(self::parserSize($drive['free'], "GB"), 8, " ", STR_PAD_LEFT) ." / "
+                    .str_pad(self::parserSize($drive['total'], "GB"), 8, " ", STR_PAD_LEFT) ." GB\n";
+            }
+        }elseif(in_array($output, ["bar", "progress", "progressbar"])){
+            foreach($drivesParsed as $id => $drive){
+                echo str_pad($drive['name'], $spacer)
+                    ."[" . self::progressbar($drive['used'], $drive['total'], 24) ."] "
+                    .number_format($drive['used'] / $drive['total'] * 100, 2) ."% - "
+                    .self::parserSize($drive['free'], "GB") ." GB"
+                 ."\n";
+            }
+        }elseif($output == "csv"){
+            foreach($drivesParsed as $id => $drive){
+                $display = [
+                    $id, ('"' .$drive['name'] .'"'),
+                    $drive['free'], $drive['used'],
+                    $drive['total'], round($drive['percent'])
+                ];
+                echo implode(";", $display) ."\n";
+            }
+        }elseif($output == "json"){
+            echo json_encode($drivesParsed, JSON_PRETTY_PRINT) ."\n";
         }
     }
 

@@ -43,6 +43,7 @@ commvault log          [ info | minor | major | critical ]
           log full
 
 commvault library
-          library MYLIB [ xml | size | jobs ]
-          library sizes [ text | bar | csv | json ]
+          library MYLIB  [ xml | size | jobs ]
+          library sizes  [ text | bar | csv | json ]
+          library drives [ text | bar | csv | json ]
 ```
