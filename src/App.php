@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0818.1";
+    private static $Version = "11.7.0818.2";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -970,17 +970,26 @@ class App {
         }
 
         $lastjobs = array_reverse($lastjobs); // Nuevos al final
+        $spacer = 0;
+        foreach($lastjobs as $job){
+            $tmp = "$job->jobType $job->backupLevelName $job->appTypeName";
+            if(strlen($tmp) > $spacer){
+                $spacer = strlen($tmp);
+            }
+        }
+        $spacer++;
 
         foreach($lastjobs as $job){
             echo str_pad($job->jobId, 8)
                 .date("d/m H:i", $job->jobStartTime)
-                ."  $job->jobType $job->backupLevelName $job->appTypeName"
-                ." - " .$job->status
+                ."  " .str_pad("$job->jobType $job->backupLevelName $job->appTypeName", $spacer)
+                .$job->status
             ."\n";
         }
+        echo "\n";
 
         foreach($status as $name => $amount){
-            echo str_pad($name, 32) .$amount ."\n";
+            echo str_pad($name, 34) .$amount ."\n";
         }
 
         $lastjob = max(array_keys($jobs));
