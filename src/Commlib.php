@@ -88,25 +88,39 @@ class Commvault {
         }
 
         $storage = $this->query("Library/$id");
-        if(!$storage or empty($storage)){ return array(); }
+        if(!$storage or empty($storage) or isset($storage['errorCode'])){ return FALSE; }
         return $storage;
     }
 
-    public function getDriveController($id){
-        $drive = $this->query("DriveController?MountPathId=$id");
-        if(!$drive or isset($drive['errorCode'])){ return NULL; }
-        return $drive->mountPathInfo;
+    public function getLibraryDrives($id){
+        if(!is_object($id)){
+            $id = $this->getLibrary($id);
+            if(empty($id)){ return FALSE; }
+        }
+        $drivesId = array();
+        $drives = array();
+        foreach($id->libraryInfo->MountPathList as $mpl){
+            $drivesId[] = intval($mpl['mountPathId']);
+        }
+        $drivesId = array_unique($drivesId);
+        foreach($drivesId as $id){
+            $drives[$id] = $this->getDriveController($id);
+        }
+        return $drives;
     }
 
-    public function getDrivesSpace($library, $all = FALSE){
-        $lib = $this->getLibrary($library);
-        if(!$lib){ return FALSE; }
+    public function getLibraryDrivesSpace($library, $all = FALSE){
+        if(!is_object($library)){
+            $library = $this->getLibrary($library);
+            if(empty($library)){ return FALSE; }
+        }
+
         $drives = array();
         $ids = array();
         $spaces = array();
 
         // MountPathId may be duplicated
-        foreach($lib->libraryInfo->MountPathList as $mount){
+        foreach($library->libraryInfo->MountPathList as $mount){
             $ids[] = intval($mount['mountPathId']);
         }
         $ids = array_unique($ids);
@@ -122,6 +136,12 @@ class Commvault {
             return array_column($spaces, 'free', 'id');
         }
         return $spaces;
+    }
+
+    public function getDriveController($id){
+        $drive = $this->query("DriveController?MountPathId=$id");
+        if(!$drive or isset($drive['errorCode'])){ return NULL; }
+        return $drive->mountPathInfo;
     }
 
     public function detectTape($MA = NULL){
