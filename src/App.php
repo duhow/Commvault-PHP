@@ -8,7 +8,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0817.3";
+    private static $Version = "11.7.0818.1";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -19,7 +19,7 @@ class App {
     private function load_token(){
         $path = self::$ConfigFile;
         if(!file_exists($path) or !is_readable($path)){ return FALSE; }
-        if(filemtime($path) + 3600 < time()){ return FALSE; }
+        if(filemtime($path) + 1800 < time()){ return FALSE; }
 
         $conf = parse_ini_file($path);
         if(!$conf){ return FALSE; }
@@ -526,35 +526,33 @@ class App {
             return self::generic_export_keyval($libraries, $extra);
         }
 
-        if(is_string($search)){
-            // Pasar a numero
-            $libraries = self::$Commvault->getLibrary();
-            $k = array_search($search, $libraries);
-            if($k === FALSE){
-                echo self::$Lang['error_library_exist'] ."\n";
-                return FALSE;
-            }
-            $search = $k;
-        }
-
         $lib = self::$Commvault->getLibrary($search);
+        if(!$lib){
+            echo self::$Lang['error_library_exist'] ."\n";
+            return FALSE;
+        }
         $mls = $lib->libraryInfo->magLibSummary;
 
         if($extra == "size"){
-            $data = [
-                'free' => self::parserSize($mls['totalFreeSpace']),
-                'total' => self::parserSize($mls['totalCapacity']),
-            ];
-            $data['used'] = $data['total'] - $data['free'];
-            $data['percent_used'] = number_format($data['used'] / $data['total'] * 100, 2);
-            $data['percent_free'] = number_format($data['free'] / $data['total'] * 100, 2);
+            $drives = self::$Commvault->getLibraryDrives($lib);
 
+            $str = self::size_describe(
+                $lib->libraryInfo->library['libraryName'],
+                self::parserSize($mls['totalFreeSpace']),
+                self::parserSize($mls['totalCapacity'])
+            );
 
-            $str = strval($lib->libraryInfo->library['libraryName']) ."\n"
-                    .str_pad(self::$Lang['bytes_free'] .":", 20) .self::parserSize($data['free'], "GB") ." GB - " .$data['percent_free'] ."%\n"
-                    .str_pad(self::$Lang['bytes_used'] .":", 20) .self::parserSize($data['used'], "GB") ." GB - " .$data['percent_used'] ."%\n"
-                    .str_pad(self::$Lang['bytes_total'] .":", 20) .self::parserSize($data['total'], "GB")  ." GB\n"
-                    ."[" .self::progressbar($data['percent_used'], 100, 28) ."]\n";
+            $str .= "\n";
+            foreach($drives as $drive){
+                $free = intval($drive->mountPathSummary['totalFreeSpace']) * 1024 * 1024;
+                $total = intval($drive->mountPathSummary['totalSpace']) * 1024 * 1024;
+
+                $str .= self::size_describe(
+                    $drive->mountPathSummary['libraryName'],
+                    $free,
+                    $total
+                ) ."\n";
+            }
         }elseif($extra == "xml"){
             $dom = dom_import_simplexml($lib)->ownerDocument;
             $dom->formatOutput = TRUE;
@@ -578,6 +576,16 @@ class App {
         }
 
         echo $str;
+    }
+
+    private function size_describe($title, $free, $total){
+        $used = $total - $free;
+        $str = strval($title) ."\n"
+                .str_pad(self::$Lang['bytes_free'] .":", 20) .self::parserSize($free, "GB") ." GB - " .number_format($free / $total * 100, 2) ."%\n"
+                .str_pad(self::$Lang['bytes_used'] .":", 20) .self::parserSize($used, "GB") ." GB - " .number_format($used / $total * 100, 2) ."%\n"
+                .str_pad(self::$Lang['bytes_total'] .":", 20) .self::parserSize($total, "GB")  ." GB\n"
+                ."[" .self::progressbar($used, $total, 28) ."] " .round($used/$total * 100)   ."%\n";
+        return $str;
     }
 
     private function library_sizes($output = "text"){
@@ -947,10 +955,28 @@ class App {
             return FALSE;
         }
 
+        ksort($jobs); // Sort array
+
         $status = array();
         foreach($jobs as $job){
             if(!isset($status[$job->status])){ $status[$job->status] = 0; }
             $status[$job->status]++;
+        }
+
+        $amount = min(10, count($jobs)) - 1;
+        $lastjobs[] = end($jobs); // Mover al final y coger uno
+        for($i = 0; $i < $amount; $i++){
+            $lastjobs[] = prev($jobs);
+        }
+
+        $lastjobs = array_reverse($lastjobs); // Nuevos al final
+
+        foreach($lastjobs as $job){
+            echo str_pad($job->jobId, 8)
+                .date("d/m H:i", $job->jobStartTime)
+                ."  $job->jobType $job->backupLevelName $job->appTypeName"
+                ." - " .$job->status
+            ."\n";
         }
 
         foreach($status as $name => $amount){
@@ -1334,6 +1360,22 @@ class App {
             }
         }
         return $confirm;
+    }
+
+    public function test($drive = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+
+        $query = self::$Commvault->getDrivesSpace($drive, TRUE);
+        if(isset($query['errorCode'])){ return; }
+        var_dump($query);
+        // mountPathSummary / deviceList
+        /* $query = $query->mountPathInfo->mountPathSummary;
+        foreach($query->attributes() as $k => $v){
+            echo "$k: " .strval($v) ."\n";
+        } */
     }
 
     private function generic_export_array($array, $output){
