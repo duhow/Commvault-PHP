@@ -882,17 +882,42 @@ class App {
             $jobs = array_reverse($jobs); // Nuevos primero
 
             foreach($jobs as $job){
+                $jobtype = $job['OperationType'];
+                $jobphase = $job['currentPhaseName'];
+
+                if(!empty($job['JobType']) and strtoupper($job['JobType']) != "NULL"){
+                    if(!in_array($job['JobType'], ['Synthetic Full'])){
+                        $jobtype .= " " .$job['JobType'];
+                    }
+                    if($job['JobType'] == "Incremental" and $jobphase == "Differential Backup"){
+                        $jobphase = "Differential";
+                    }
+                }
+
                 $date = date("d/m H:i", $job['jobStartTime']);
+                if(
+                    (strtoupper($job['StateName']) == "PENDING" and intval($job['percentcomplete']) == 5) or
+                    intval($job['percentcomplete']) == 0
+                ){
+                    echo "\033[1;33m"; // Yellow
+                }
                 echo str_pad($job['jobID'], 8)
                     .str_pad(strtoupper($job['StateName']), 10)
-                    .str_pad($job['OperationType'] ." " .$job['JobType'], 19)
-                    .str_pad("- " .$job['currentPhaseName'], 20)
+                    .str_pad($jobtype, 19)
+                    .str_pad("- " .$jobphase, 20)
                     .str_pad($job['clientName'], 30)
                     .$date . " "
                     ."[" .self::progressbar($job['percentcomplete'], 100, 8) ."] ";
 
                 if(intval($job['percentcomplete']) > 0){
                     echo str_pad($job['percentcomplete'] ."%", 3, "0", STR_PAD_LEFT);
+                }
+
+                if(
+                    (strtoupper($job['StateName']) == "PENDING" and intval($job['percentcomplete']) == 5) or
+                    intval($job['percentcomplete']) == 0
+                ){
+                    echo "\033[0m";
                 }
 
                 echo "\n";
@@ -1031,6 +1056,7 @@ class App {
     }
 
     private function client_jobs($clientid){
+        self::$Commvault->limit = 1000;
         $jobs = self::$Commvault->getClientJobs($clientid);
         if(empty($jobs)){
             echo self::$Lang['error_client_no_jobs'];
@@ -1451,22 +1477,6 @@ class App {
             }
         }
         return $confirm;
-    }
-
-    public function test($drive = NULL){
-        if(!self::load_token()){
-            echo self::$Lang['error_token'];
-            return FALSE;
-        }
-
-        $query = self::$Commvault->getDrivesSpace($drive, TRUE);
-        if(isset($query['errorCode'])){ return; }
-        var_dump($query);
-        // mountPathSummary / deviceList
-        /* $query = $query->mountPathInfo->mountPathSummary;
-        foreach($query->attributes() as $k => $v){
-            echo "$k: " .strval($v) ."\n";
-        } */
     }
 
     private function generic_export_array($array, $output){
