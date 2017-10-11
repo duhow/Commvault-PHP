@@ -208,6 +208,16 @@ class App {
             return self::client_all($extra);
         }
 
+        if($search == "search"){
+            $output = self::client_search($extra);
+            if(is_numeric($output)){
+                $search = $output;
+                $extra = NULL;
+            }else{
+                return $output;
+            }
+        }
+
         $posible = [
             "json", "xml", "summary",
             "id", "status", "ping", "jobs", "lastjob", "size"
@@ -293,6 +303,32 @@ class App {
             $str .= "\n";
             echo $str;
         }
+    }
+
+    private function client_search($search = NULL, $return = FALSE){
+        if(empty(trim($search))){
+            echo self::$Lang['error_search_empty'];
+            return FALSE;
+        }
+
+        $search = strtolower($search);
+        $clients = self::$Commvault->getClient();
+        $posible = array();
+
+        foreach($clients as $id => $cli){
+            $cli = strtolower($cli);
+            if($search == $cli){ return $id; }
+            elseif(strpos($cli, $search) !== FALSE){ $posible[] = $id; }
+        }
+
+        if(count($posible) == 1){ return current($posible); }
+
+        $final = array();
+        foreach($posible as $p){
+            $final[$p] = $clients[$p];
+        }
+
+        return self::generic_export_keyval($final, "text");
     }
 
     public function clientgroup($search = NULL, $filter = NULL, $output = NULL){

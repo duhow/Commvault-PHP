@@ -28,6 +28,7 @@ return array(
     'error_job_action' => 'Ha ocurrido un error al realizar la acción con el trabajo.',
     'error_execute_no_file' => 'Indica el archivo XML con la tarea a ejecutar.' ."\n",
     'error_execute_file_exists' => 'El archivo indicado no existe.' ."\n",
+    'error_search_empty' => 'La búsqueda no puede estar vacía.' ."\n",
 
     'login_reconnect_host' => 'Reutilizando conexión previa:',
     'login_ok' => 'Login correcto, token guardado.',
