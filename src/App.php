@@ -622,7 +622,10 @@ class App {
                 'free' => self::parserSize($s['totalFreeSpace']),
             ];
             $data['used'] = $data['capacity'] - $data['free'];
-            $data['percent'] = (float) number_format(($data['used'] / $data['capacity']) * 100, 2);
+            $data['percent'] = 0;
+            if($data['capacity'] > 0){ // Avoid DIV 0.
+                $data['percent'] = (float) number_format(($data['used'] / $data['capacity']) * 100, 2);
+            }
             $libsizes[$id] = $data;
         }
 
