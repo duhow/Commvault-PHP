@@ -67,6 +67,7 @@ class App {
                     'client', 'clients', 'clientgroup', 'clientgroups',
                     'ping', 'storagepolicy', 'library',
                     'job', 'jobs', 'log',
+                    'execute', 'console',
                     'login', 'logout'
                 ];
 
@@ -1014,6 +1015,48 @@ class App {
         if(!self::confirm_user()){ return FALSE; }
         $res = self::$Commvault->QCommand("qoperation jobcontrol -all -o $action");
         echo $res ."\n"; // TODO Debug output
+    }
+
+    public function execute($file = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+
+        if(empty($file)){
+            echo self::$Lang['error_execute_no_file'];
+            return FALSE;
+        }
+
+        if(!file_exists($file) or !is_readable($file)){
+            echo self::$Lang['error_execute_file_exists'];
+            return FALSE;
+        }
+
+        $output = self::$Commvault->QOperation($file);
+        $xml = self::parseXml($output);
+        if(is_array($xml) and array_key_exists('jobs', $xml)){
+            echo self::$Lang['execute_jobs_created'] .' ' . implode(", ", $xml['jobs']) ."\n";
+        }else{
+            echo $output;
+        }
+        return $output;
+    }
+
+    private function parseXml($string){
+        $xml = @simplexml_load_string($string);
+        if($xml === FALSE){ return FALSE; }
+        if($xml->getName() == "TMMsg_CreateTaskResp"){
+            $taskId = $xml['taskId']; // should get it?
+            $jobs = array();
+            foreach($xml->jobIds as $job){
+                $jobs[] = intval($job['val']);
+            }
+            // if(count($jobs) == 1){ return current($jobs); }
+            if(count($jobs) > 0){ return ['jobs' => $jobs]; }
+            return FALSE;
+        }
+        return $xml;
     }
 
     public function storagepolicy($MA = NULL, $output = NULL){

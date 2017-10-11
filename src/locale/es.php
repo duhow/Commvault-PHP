@@ -7,6 +7,8 @@ return array(
     'help_clients' => 'Muestra información de varios clientes.',
     'help_clientgroup' => 'Muestra información de un grupo de clientes.',
     'help_clientgroups' => 'Muestra la lista de todos los grupos de clientes.',
+    'help_console' => 'Abre una interfaz de consola para ejecutar comandos de Commvault.',
+    'help_execute' => 'Ejecuta una tarea programada en un archivo XML.',
     'help_storagepolicy' => 'Muestra la lista de todas las políticas de almacenamiento.',
     'help_library' => 'Muestra las librerías disponibles.',
     'help_jobs' => 'Muestra las tareas en curso.',
@@ -24,6 +26,8 @@ return array(
     'error_token' => 'El token no es válido o ha expirado. Por favor, haz login primero.' ."\n",
     'error_library_exist' => 'La librería no existe.',
     'error_job_action' => 'Ha ocurrido un error al realizar la acción con el trabajo.',
+    'error_execute_no_file' => 'Indica el archivo XML con la tarea a ejecutar.' ."\n",
+    'error_execute_file_exists' => 'El archivo indicado no existe.' ."\n",
 
     'login_reconnect_host' => 'Reutilizando conexión previa:',
     'login_ok' => 'Login correcto, token guardado.',
@@ -56,6 +60,8 @@ return array(
     'lastbackup' => 'Ultimo backup:',
     'library_backupgiga' => 'GB por 1/24h:',
     'library_freespace' => 'Espacio libre:',
+
+    'execute_jobs_created' => 'Se han creado los jobs:',
 
     'user_confirm' => 'Por favor, confirma la acción. [S/N] ',
     'user_confirm_yes' => 'si',

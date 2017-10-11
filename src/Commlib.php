@@ -156,6 +156,19 @@ class Commvault {
         return $query;
     }
 
+    public function getSchedule($id = NULL){
+
+    }
+
+    public function getSchedulePolicy($id = NULL){
+        if(empty($id)){
+            $schedules = $this->query("SchedulePolicy");
+        }else{
+            $schedules = $this->query("SchedulePolicy/$id");
+        }
+        return $schedules;
+    }
+
     public function getClient($id = NULL, $additional = FALSE){
         if(empty($id)){
             $clients = $this->query("Client");
@@ -415,6 +428,39 @@ class Commvault {
         curl_setopt($ch, CURLOPT_POST, TRUE);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $command);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $result = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        try {
+            if($http_code == 401){ return FALSE; }
+            if($this->debug){ var_dump($result); }
+            return $result;
+        } catch (Exception $e) {
+            return NULL;
+        }
+    }
+
+    public function QOperation($data){
+        if(empty($this->url)){ return FALSE; }
+        $headers = array(
+            "Accept: application/xml",
+            'Content-Type: application/xml'
+        );
+        if(!empty($this->token)){ $headers[] = "Authtoken: " .$this->token; }
+
+        if(file_exists($data)){
+            $file = $data;
+            $data = file_get_contents($file);
+        }
+
+        $ch = curl_init($this->url . "QCommand/qoperation%20execute");
+
+        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $result = curl_exec($ch);
