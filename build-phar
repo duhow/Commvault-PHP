@@ -10,6 +10,12 @@ if(file_exists($filename)){
 
 clog("Creating Phar file ...");
 
+$option = get_cfg_var('phar.readonly');
+if($option === FALSE or in_array(strtoupper($option), ['ON', 1])){
+    clog("Can't create Phar file! Set phar.readonly to Off in PHP config.");
+    die();
+}
+
 $phar = new Phar($filename,
     FilesystemIterator::CURRENT_AS_FILEINFO |
     FilesystemIterator::KEY_AS_FILENAME

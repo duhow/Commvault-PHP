@@ -1,6 +1,10 @@
 <?php
 
 if(php_sapi_name() !== 'cli'){ die("Please use as CLI app."); }
+// Require php-xml and php-curl.
+foreach(['xml', 'curl'] as $ext){
+    if (!extension_loaded($ext) and !dl("$ext.so")){ die("Could not load php-$ext."); }
+}
 require 'Commlib.php';
 
 class App {
@@ -8,7 +12,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.7.0818.3";
+    private static $Version = "11.9.1102.1";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -1186,6 +1190,65 @@ class App {
         if($lastjob){
             echo "\n";
             return self::client_lastjob($jobs[$lastjob]);
+        }
+    }
+
+    public function usersandgroups($export = "text"){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+
+        $r = self::$Commvault->getUsersAndGroups();
+        if(!isset($r->users)){
+            echo self::$Lang['error_client_no_jobs']; // TODO
+            return FALSE;
+        }
+        foreach($r->users as $user){
+            echo
+                str_pad("#" .$user->associatedUserOrUserGroup['userId'], 6) ."- "
+                .str_pad($user->associatedUserOrUserGroup['userName'], 26)
+                .$user['fullName']
+            ."\n";
+        }
+        echo "\n\n";
+        foreach($r->userGroups as $group){
+            echo
+                str_pad("#" .$group->associatedUserOrUserGroup['userGroupId'], 6) ."- "
+                .$group->associatedUserOrUserGroup['userGroupName']
+            ."\n";
+        }
+    }
+
+    public function user($search = NULL, $extra = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+
+        if(empty($search)){
+            return FALSE;
+        }
+
+        $user = self::$Commvault->getUser($search);
+        if(!$user){
+            echo self::$Lang['error_client_not_found'];
+            return FALSE;
+        }
+
+        // xml, text, groups, roles, delete, apps, settings
+    }
+
+    private function users_groups_belong(){
+        $users = self::$Commvault->getUsersAndGroups(TRUE);
+        foreach($users['user'] as $id => $user){
+            $userinfo = self::$Commvault->getUser($id);
+            $groups = array();
+            foreach($userinfo->users->associatedUserGroups as $group){
+                $groups[] = strval($group['userGroupName']);
+            }
+
+            echo $user .";" .implode(", ", $groups) ."\n";
         }
     }
 

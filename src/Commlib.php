@@ -408,6 +408,44 @@ class Commvault {
         return $storages;
     }
 
+    public function getUser($id = NULL){
+        if($id === TRUE){ return $this->getUsersAndGroups(); }
+        $get = "";
+        if(is_numeric($id)){ $get = "/$id"; }
+        elseif(is_string($id)){ $get = "/byName(userName='$id')"; }
+        $query = $this->query("User" .$get);
+        return $query;
+    }
+
+    public function getUserGroup($id = NULL){
+        if($id === TRUE){ return $this->getUsersAndGroups(); }
+        $get = "";
+        if(is_numeric($id)){ $get = "/$id"; }
+        elseif(is_string($id)){ $get = "/byName(userGroupName='$id')"; }
+        $query = $this->query("UserGroup" .$get);
+        return $query;
+    }
+
+    public function getUsersAndGroups($idname = FALSE){
+        $query = $this->query("UsersAndGroups");
+        if(!$query){ return FALSE; }
+        if($idname){
+            $final = array();
+            foreach($query->users as $user){
+                $id = intval($user->associatedUserOrUserGroup['userId']);
+                $username = strval($user->associatedUserOrUserGroup['userName']);
+                $final['user'][$id] = $username;
+            }
+            foreach($query->userGroups as $group){
+                $id = intval($group->associatedUserOrUserGroup['userGroupId']);
+                $username = strval($group->associatedUserOrUserGroup['userGroupName']);
+                $final['group'][$id] = $username;
+            }
+            return $final;
+        }
+        return $query;
+    }
+
     public function QCommand($command){
         if(empty($this->url)){ return FALSE; }
         $headers = array(
@@ -530,6 +568,112 @@ class Commvault {
         $this->token = $token;
         return $this;
     }
+}
+
+class CommvaultApplications {
+    const MyBackups = 1;
+    const DownloadCenter = 2;
+    const VMManagement = 3;
+    const Reports = 4;
+    const SoftwareDeployment = 5;
+    const VcenterPlugin = 6;
+    const ComplianceSearch = 7;
+    const Documentation = 8;
+    const CommcellConsole = 9;
+    const CloudApps = 10;
+    const CustomReports = 11;
+    const ForAdministrators = 12;
+    const EDC = 13;
+    const Survey = 14;
+    const ConfigurationRequest = 15;
+    const SyncFolders = 16;
+    const GenerateAuthcode = 17;
+    const EventsOrganizer = 18;
+    const Monitoring = 19;
+    const Workflow = 20;
+    const PseEcg = 21;
+    const CloudConnector = 22;
+    const DataBaseManagement = 23;
+    const WebAnalytics = 24;
+    const LaptopPrivacyControl = 26;
+    const MobileDeviceManagement = 27;
+    const DataMonitoring = 28;
+    const LGNewIndividualLicense = 29;
+    const LGModifyIndividualLicense = 30;
+    const StorageManagement = 31;
+    const StorageReplication = 32;
+    const Analytics = 33;
+    const LGCapacityLicense = 34;
+    const RecordsManagement = 35;
+    const LogMonitoring = 36;
+    const SystemMonitoring = 37;
+    const VirtualMachineLabs = 38;
+    const CVWebConsoleSSO = 39;
+    const TimeOff = 40;
+    const LGNewLicense = 41;
+    const LGModifyLicense = 42;
+    const LGIpChange = 43;
+    const LGStagingLicense = 44;
+    const LGDeleteLicense = 45;
+    const LGTransferLicense = 46;
+    const LGViewLicense = 47;
+    const ContractManagement = 48;
+    const CollaborativeShare = 49;
+    const CvLegalApp = 50;
+    const SoftwareStore = 51;
+
+    public $array = [
+        1 => "My Backups",
+        2 => "Download Center",
+        3 => "VM Management",
+        4 => "Reports",
+        5 => "Software Deployment",
+        6 => "Vcenter Plug-in",
+        7 => "Compliance Search",
+        8 => "Documentation",
+        9 => "Commcell Console",
+        10 => "Cloud Apps",
+        11 => "Custom Reports",
+        12 => "For Administrators",
+        13 => "EDC",
+        14 => "Survey",
+        15 => "Configuration Request",
+        16 => "Sync Folders",
+        17 => "Generate Authcode",
+        18 => "Events Organizer",
+        19 => "Monitoring",
+        20 => "Workflow",
+        21 => "PseEcg",
+        22 => "Cloud Connector",
+        23 => "DataBase Management",
+        24 => "Web Analytics",
+        26 => "Laptop Privacy Control",
+        27 => "Mobile Device Management",
+        28 => "Data Monitoring",
+        29 => "LG New Individual License",
+        30 => "LG Modify Individual License",
+        31 => "Storage Management",
+        32 => "Storage Replication",
+        33 => "Analytics",
+        34 => "LG Capacity License",
+        35 => "Records Management",
+        36 => "Log Monitoring",
+        37 => "System Monitoring",
+        38 => "Virtual Machine Labs",
+        39 => "CV Web Console SSO",
+        40 => "Time Off",
+        41 => "LG New License",
+        42 => "LG Modify License",
+        43 => "LG Ip Change",
+        44 => "LG Staging License",
+        45 => "LG Delete License",
+        46 => "LG Transfer License",
+        47 => "LG View License",
+        48 => "Contract Management",
+        49 => "Collaborative Share",
+        50 => "CvLegal App",
+        51 => "Software Store"
+    ];
 }
 
 ?>
