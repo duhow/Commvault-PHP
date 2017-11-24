@@ -12,6 +12,7 @@ commvault login HOSTNAME
 
 commvault clients               [ id | name | csv | json ]
           clients backend       [ text | csv | total ]
+          clients assoc         [ text | id | csv | json ]
 
 commvault client [ list | all ] [ id | name | csv | json ]
           client MYSERVER id

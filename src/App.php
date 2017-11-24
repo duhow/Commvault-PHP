@@ -12,7 +12,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.9.1124.1";
+    private static $Version = "11.9.1124.2";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -195,8 +195,11 @@ class App {
     }
 
     public function clients($output = NULL, $param = NULL){
-        if(strtolower($output) == "backend"){
+        $command = strtolower($output);
+        if($command == "backend"){
             return self::clients_backend($param);
+        }elseif($command == "assoc"){
+            return self::clients_assoc($param);
         }
         return self::client("all", $output);
     }
@@ -717,6 +720,50 @@ class App {
             ."\n";
             echo $str;
             return $str;
+        }
+    }
+
+    public function clients_assoc($output = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+
+        $clients = self::$Commvault->getClient();
+        $cgs = self::$Commvault->getClientGroup();
+
+        $assoc = array();
+
+        foreach($cgs as $id => $name){
+            $vals = self::$Commvault->getClientGroupClients($id);
+            if($vals){ $vals = array_keys($vals); }
+            $assoc[$id] = $vals;
+        }
+
+        if($output === TRUE){
+            return $assoc;
+        }elseif($output == "csv"){
+            foreach($assoc as $cg => $clis){
+                foreach($clis as $cli){
+                    if(!array_key_exists($cli, $clients)){ continue; }
+                    echo $cgs[$cg] .";" .$clients[$cli] ."\n";
+                }
+            }
+        }elseif($output == "id"){
+            foreach($assoc as $cg => $clis){
+                foreach($clis as $cli){
+                    if(!array_key_exists($cli, $clients)){ continue; }
+                    echo $cg .";" .$cli ."\n";
+                }
+            }
+        }else{
+            foreach($assoc as $cg => $clis){
+                echo $cgs[$cg] ."\n";
+                foreach($clis as $cli){
+                    if(!array_key_exists($cli, $clients)){ continue; }
+                    echo "\t" ."#$cli - " .$clients[$cli] ."\n";
+                }
+            }
         }
     }
 
