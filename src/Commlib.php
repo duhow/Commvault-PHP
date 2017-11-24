@@ -514,6 +514,41 @@ class Commvault {
         }
     }
 
+    public function BackendStorage($retRows = FALSE){
+        $command = $this->QCommand("qoperation execscript -sn BackendStorage -si @i_backupType='All'");
+        $xml = simplexml_load_string($command);
+        $rows = array();
+        foreach($xml->FieldValue as $row){
+            $data = array();
+            foreach($row->attributes() as $k => $v){
+                $k = str_replace(["__GB_", "_"], "", strval($k));
+                if(is_numeric(strval($v))){
+                    $data[$k] = floatval($v);
+                }else{
+                    // Windows FS, Linux FS...
+                    if(strpos(strval($v), "File System") !== FALSE){
+                        $data[$k] = "File System";
+                    }else{
+                        $data[$k] = strval($v);
+                    }
+                }
+            }
+            $rows[] = $data;
+        }
+        if($retRows){ return $rows; }
+
+        $clis = array();
+        foreach($rows as $cli){
+            if(!isset($clis[$cli['ClientName']])){
+                $clis[$cli['ClientName']] = array();
+            }
+            $tmp = $cli;
+            unset($tmp['ClientName']);
+            $clis[$cli['ClientName']][] = $tmp;
+        }
+        return $clis;
+    }
+
     private function query($action, $data = NULL, $accept = "xml"){
         if(empty($this->url)){ return FALSE; }
         $headers = array(

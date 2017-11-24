@@ -12,7 +12,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.9.1102.1";
+    private static $Version = "11.9.1124.1";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -194,7 +194,10 @@ class App {
         }
     }
 
-    public function clients($output = NULL){
+    public function clients($output = NULL, $param = NULL){
+        if(strtolower($output) == "backend"){
+            return self::clients_backend($param);
+        }
         return self::client("all", $output);
     }
 
@@ -224,7 +227,7 @@ class App {
 
         $posible = [
             "json", "xml", "summary",
-            "id", "status", "ping", "jobs", "lastjob", "size"
+            "id", "status", "ping", "jobs", "lastjob", "size", "backend"
         ];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
@@ -237,6 +240,8 @@ class App {
         // Ping
         if(in_array($extra, ["status", "ping"])){
             return self::ping($search);
+        }elseif($extra == "backend"){
+            return self::client_backend($search);
         }elseif($extra == "size"){
             if(!is_numeric($search)){
                 $search = self::$Commvault->getClientId($search);
@@ -345,7 +350,7 @@ class App {
             return FALSE;
         }
 
-        $posible = ["clients", "proxies", "size"];
+        $posible = ["clients", "proxies", "size", "backend"];
         if(in_array($search, $posible) and !empty($filter)){
             $tmp = $filter;
             $filter = $search;
@@ -371,17 +376,17 @@ class App {
         }
 
         $cg = self::$Commvault->getClientGroup($search);
-        if(!$cg){
-            if(!$search){
-                echo self::$Lang['error_clientgroup_not_found'];
-                return FALSE;
-            }
+        if(!$cg or isset($cg['errorMessage'])){
+            echo self::$Lang['error_clientgroup_not_found'];
+            return FALSE;
         }
 
         if($filter == "clients"){
             return self::clientgroup_clients($cg, $output);
         }elseif($filter == "proxies"){
             return self::clientgroup_proxies($cg, $output);
+        }elseif($filter == "backend"){
+            return self::clientgroup_backend($cg, $output);
         }
 
         if($output == "xml"){
@@ -524,6 +529,194 @@ class App {
             echo "\n";
         }elseif($output == "json"){
             echo json_encode($clients, JSON_PRETTY_PRINT) ."\n";
+        }
+    }
+
+    public function backend($output = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+
+        if($output != "json"){
+            $clients = self::$Commvault->getClient();
+            $clients = array_flip($clients); // Name -> ID
+        }
+
+        $backend = self::$Commvault->BackendStorage();
+
+        if($output == "csv"){
+            foreach($backend as $cli => $backups){
+                foreach($backups as $backup){
+                    $app = self::parserSize($backup['ApplicationSize'] ."GB");
+                    $backend = self::parserSize($backup['BackendSize'] ."GB");
+
+                    $show = [
+                        $clients[$cli],
+                        $cli,
+                        $app,
+                        $backend,
+                        $backup['Agent'],
+                        $backup['StoragePolicy'],
+                        $backup['SubClient'],
+                    ];
+                    echo implode(";", $show) ."\n";
+                }
+            }
+        }elseif($output == "json"){
+            echo json_encode($backend, JSON_PRETTY_PRINT);
+        }else{
+            $output = array();
+            foreach($backend as $cli => $backups){
+                foreach($backups as $backup){
+                    $output[] = [
+                        $clients[$cli],
+                        $cli,
+                        $backup['ApplicationSize'] ." GB",
+                        $backup['BackendSize'] ." GB",
+                        $backup['Agent'],
+                        $backup['StoragePolicy'],
+                        $backup['SubClient'],
+                    ];
+                }
+            }
+
+            $spacer = [0,0,0,0,0,0,0];
+            foreach($output as $r){
+                foreach($r as $k => $v){
+                    if(strlen($v)+1 > $spacer[$k]){
+                        $spacer[$k] = strlen($v)+1;
+                    }
+                }
+            }
+
+            foreach($output as $r){
+                foreach($r as $k => $v){
+                    echo str_pad($v, $spacer[$k]);
+                }
+                echo "\n";
+            }
+        }
+    }
+
+    private function clientgroup_backend($cgobj, $output = NULL){
+        $clis = array();
+        foreach($cgobj->clientGroupDetail->associatedClients as $cli){
+            $clis[] = strval($cli['clientName']);
+        }
+
+        $backend = self::$Commvault->BackendStorage();
+        $sizes = array();
+        foreach($clis as $cli){
+            $sizes[$cli] = NULL;
+            if(!isset($backend[$cli])){ continue; }
+            $sizes[$cli] = [
+                array_sum(array_column($backend[$cli], 'ApplicationSize')),
+                array_sum(array_column($backend[$cli], 'BackendSize'))
+            ];
+        }
+
+        return self::backend_output($sizes, $output);
+    }
+
+    private function client_backend($cliname, $output = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+        if($output == "xml"){
+            $command = self::$Commvault->QCommand("qoperation execscript -sn BackendStorage -si @i_backupType='All'");
+            $command = str_replace("/><", "/>\n<", $command);
+            $command = explode("\n", $command);
+            $command = preg_grep("/$cliname/", $command);
+            $command = implode("\n", $command);
+            echo $command ."\n";
+            return $command;
+        }
+
+        $backend = self::$Commvault->BackendStorage();
+        if(!isset($backend[$cliname])){
+            echo self::$Lang['error_client_no_jobs'];
+            return FALSE;
+        }
+
+        foreach($backend[$cliname] as $row){
+            echo $row['BackendSize'] ." " .$row['ApplicationSize'] ."\n";
+        }
+    }
+
+    private function clients_backend($output = NULL){
+        if(!self::load_token()){
+            echo self::$Lang['error_token'];
+            return FALSE;
+        }
+        if($output == "xml"){
+            $command = self::$Commvault->QCommand("qoperation execscript -sn BackendStorage -si @i_backupType='All'");
+            echo $command;
+            return $command;
+        }
+
+        $backend = self::$Commvault->BackendStorage();
+        $sizes = array();
+        foreach($backend as $cli => $data){
+            $sizes[$cli] = [
+                array_sum(array_column($backend[$cli], 'ApplicationSize')),
+                array_sum(array_column($backend[$cli], 'BackendSize'))
+            ];
+        }
+
+        return self::backend_output($sizes, $output);
+    }
+
+    private function backend_output($sizes, $output = NULL){
+        $output = strtolower($output);
+
+        if($output === TRUE){ return $sizes; }
+        elseif($output == "csv"){
+            foreach($sizes as $cli => $data){
+                $app = self::parserSize($data[0] ." GB");
+                $backend = self::parserSize($data[1] ." GB");
+                echo "$cli;$app;$backend\n";
+            }
+        }elseif($output == "total"){
+            $total = self::parserSize(array_sum(array_column($sizes, 1)) ." GB");
+            echo $total ."\n";
+            return $total;
+        }elseif(in_array($output, ["app", "application"])){
+            $app = self::parserSize(array_sum(array_column($sizes, 0)) ." GB");
+            echo $app ."\n";
+            return $app;
+        }elseif(in_array($output, ["totalwithapp", "totalapp", "total-with-app"])){
+            $app = self::parserSize(array_sum(array_column($sizes, 0)) ." GB");
+            $backend = self::parserSize(array_sum(array_column($sizes, 1)) ." GB");
+
+            echo "$app $backend\n";
+            return [$app, $backend];
+        }elseif($output == "csv"){
+            foreach($sizes as $cli => $data){
+                $app = self::parserSize($data[0] ." GB");
+                $backend = self::parserSize($data[1] ." GB");
+                echo "$cli;$app;$backend\n";
+            }
+        }else{ // if text or empty
+            $str = "";
+            $sep = 1;
+            foreach($sizes as $cli => $data){
+                if(strlen($cli) > $sep){ $sep = strlen($cli); }
+            }
+            foreach($sizes as $cli => $data){
+                $app = number_format($data[0], 2, ".", "");
+                $backend = number_format($data[1], 2, ".", "");
+                $str .= str_pad($cli, $sep) ." " .str_pad($app, 11, " ", STR_PAD_LEFT) ." / " .str_pad($backend, 8, " ", STR_PAD_LEFT) ." GB" ."\n";
+            }
+            $app = number_format(array_sum(array_column($sizes, 0)), 2, ".", "");
+            $backend = number_format(array_sum(array_column($sizes, 1)), 2, ".", "");
+            $str .= str_pad("TOTAL", $sep) ." "
+                .str_pad($app, 11, " ", STR_PAD_LEFT) ." / "
+                .str_pad($backend, 8, " ", STR_PAD_LEFT) ." GB"
+            ."\n";
+            echo $str;
+            return $str;
         }
     }
 
