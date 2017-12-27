@@ -19,7 +19,7 @@ commvault client [ list | all ] [ id | name | csv | json ]
           client MYSERVER status
           client MYSERVER size
           client MYSERVER backend
-          client MYSERVER [ jobs | lastjob ]
+          client MYSERVER [ jobs | lastjob | lastfull ]
           client MYSERVER [ xml | json ]
 
 commvault ping             [ MYSERVER   | id ]

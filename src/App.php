@@ -12,7 +12,7 @@ class App {
     private static $Commvault = NULL;
     private static $Config = array();
     private static $ConfigFile = NULL;
-    private static $Version = "11.9.1124.2";
+    private static $Version = "11.9.1227.1";
 
     public function init(){
         self::$Commvault = new Commvault;
@@ -69,7 +69,7 @@ class App {
 
                 $commands = [
                     'client', 'clients', 'clientgroup', 'clientgroups',
-                    'ping', 'storagepolicy', 'library',
+                    'ping', 'storagepolicy', 'library', 'backend',
                     'job', 'jobs', 'log',
                     'execute', 'console',
                     'login', 'logout'
@@ -230,7 +230,8 @@ class App {
 
         $posible = [
             "json", "xml", "summary",
-            "id", "status", "ping", "jobs", "lastjob", "size", "backend"
+            "id", "status", "ping", "jobs", "size", "backend",
+            "lastjob", "lastfull"
         ];
         if(!empty($extra) and !in_array($extra, $posible)){
             // Rotate if not contains command TODO
@@ -265,12 +266,13 @@ class App {
                 ."Disk: " .str_pad($sizes[1], $spacer, " ", STR_PAD_LEFT) ." / "
                     .str_pad(self::parserSize($sizes[1], "GB"), $spacergb, " ", STR_PAD_LEFT) ." GB ($percentage%)\n";
             return TRUE;
-        }elseif(in_array($extra, ["jobs", "lastjob"])){
+        }elseif(in_array($extra, ["jobs", "lastjob", "lastfull"])){
             if(!is_numeric($search)){
                 $search = self::$Commvault->getClientId($search);
             }
 
             if($extra == "lastjob"){ return self::client_lastjob($search); }
+            elseif($extra == "lastfull"){ return self::client_lastfull($search); }
             return self::client_jobs($search); // All
         }
 
@@ -541,15 +543,22 @@ class App {
             return FALSE;
         }
 
-        if($output != "json"){
+        if(!in_array($output, ["xml", "json"])){
             $clients = self::$Commvault->getClient();
             $clients = array_flip($clients); // Name -> ID
+        }
+        if($output == "xml"){
+            $command = self::$Commvault->QCommand("qoperation execscript -sn BackendStorage -si @i_backupType='All'");
+            $command = str_replace("/><", "/>\n<", $command);
+            echo $command;
+            return $command;
         }
 
         $backend = self::$Commvault->BackendStorage();
 
         if($output == "csv"){
             foreach($backend as $cli => $backups){
+                if(!array_key_exists($cli, $clients)){ continue; } // HACK
                 foreach($backups as $backup){
                     $app = self::parserSize($backup['ApplicationSize'] ."GB");
                     $backend = self::parserSize($backup['BackendSize'] ."GB");
@@ -723,7 +732,7 @@ class App {
         }
     }
 
-    public function clients_assoc($output = NULL){
+    private function clients_assoc($output = NULL){
         if(!self::load_token()){
             echo self::$Lang['error_token'];
             return FALSE;
@@ -1183,7 +1192,7 @@ class App {
                     (strtoupper($job['StateName']) == "PENDING" and intval($job['percentcomplete']) == 5) or
                     intval($job['percentcomplete']) == 0
                 ){
-                    echo "\033[1;33m"; // Yellow
+                    self::console_color("yellow");
                 }
                 echo str_pad($job['jobID'], 8)
                     .str_pad(strtoupper($job['StateName']), 10)
@@ -1201,12 +1210,56 @@ class App {
                     (strtoupper($job['StateName']) == "PENDING" and intval($job['percentcomplete']) == 5) or
                     intval($job['percentcomplete']) == 0
                 ){
-                    echo "\033[0m";
+                    self::console_color("reset");
                 }
 
                 echo "\n";
             }
         }
+    }
+
+    private function console_color($color, $retcol = FALSE){
+        if(is_string($color)){ $color = strtolower($color); }
+        if(empty($color) or $color === FALSE){
+            $str = "\033[0m";
+            if($retcol){ return $str; }
+            echo $str;
+            return TRUE;
+        }
+
+        $colors = [
+            'green' => '0;32',
+            'yellow' => '1;33',
+            'black' => '0;30',
+            'darkgray' => '1;30',
+            'red' => '0;31',
+            'lightred' => '1;31',
+            'green' => '0;32',
+            'lightgreen' => '1;32',
+            'brownorange' => '0;33',
+            'blue' => '0;34',
+            'lightblue' => '1;34',
+            'purple' => '0;35',
+            'lightpurple' => '1;35',
+            'cyan' => '0;36',
+            'lightcyan' => '1;36',
+            'lightgray' => '0;37',
+            'white' => '1;37',
+
+            'normal' => '0',
+            'reset' => '0',
+            'bold' => '1',
+            'underline' => '4',
+            'blink' => '5',
+        ];
+
+        if(!in_array($color, array_keys($colors))){
+            return ($retcol ? NULL : FALSE);
+        }
+        $str = "\033[" .$colors[$color] ."m";
+        if($retcol){ return $str; }
+        echo $str;
+        return TRUE;
     }
 
     public function job($jobid, $output = NULL){
@@ -1476,11 +1529,25 @@ class App {
             return FALSE;
         }
 
+        var_dump($user);
+        $name = trim(strval($user->users['fullName']));
+        if($name){ $name = " $name"; }
+        $str =
+            "#" .intval($user->users->userEntity['userId']) .$name ." - " .strval($user->users->userEntity['userName']) ." "
+                .(intval($user->users['enableUser']) ? "" : "BLOCKED ")
+                .(intval($user->users['loggedInMode']) ? "LOGIN " : "")
+                ."(" .date("Y-m-d H:i", intval($user->users['lastLogIntime'])) .")\n"
+
+                .strval($user->users['email']) ."\n"
+                .strval($user->users['description']) ."\n";
+        $str .= "\n";
         // xml, text, groups, roles, delete, apps, settings
+        echo $str;
     }
 
-    private function users_groups_belong(){
+    private function users_groups_belong($asArray = FALSE){
         $users = self::$Commvault->getUsersAndGroups(TRUE);
+        $ret = array();
         foreach($users['user'] as $id => $user){
             $userinfo = self::$Commvault->getUser($id);
             $groups = array();
@@ -1488,8 +1555,12 @@ class App {
                 $groups[] = strval($group['userGroupName']);
             }
 
-            echo $user .";" .implode(", ", $groups) ."\n";
+            $ret[$user] = $groups;
+            if(!$asArray){
+                echo $user .";" .implode(", ", $groups) ."\n";
+            }
         }
+        return $ret;
     }
 
     private function client_lastjob($clientid){
@@ -1520,6 +1591,47 @@ class App {
             echo $job->pendingReason ."\n";
         }
         echo "\n";
+    }
+
+    private function client_lastfull($clientid){
+        self::$Commvault->limit = 10000;
+        $jobs = self::$Commvault->getClientJobs($clientid);
+
+        $last = array();
+        foreach($jobs as $job){
+            if(
+                stripos($job->backupLevel, "Full") === FALSE or
+                trim($job->status) != "Completed"
+            ){ continue; }
+            $key = "$job->jobType $job->backupLevelName $job->appTypeName $job->subclientName";
+            $index = md5($key);
+            if(
+                !array_key_exists($index, $last) or
+                (
+                    array_key_exists($index, $last) and
+                    intval($last[$index]->jobEndTime) < intval($job->jobEndTime)
+                )
+            ){
+                $last[$index] = $job;
+            }
+
+        }
+
+        if(empty($last)){
+            echo self::$Lang['error_no_full_backups_found'];
+            return FALSE;
+        }
+
+        $max = 0;
+        foreach($last as $job){
+            $time = intval($job->jobEndTime);
+            if($time > $max){ $max = $time; }
+
+            echo $job->jobId .' ' .date("Y-m-d H:i", $job->jobEndTime) .' '
+                ."$job->jobType $job->backupLevelName $job->appTypeName $job->subclientName" ."\n";
+        }
+
+        return $max;
     }
 
     private function client_size($clientid, $all = FALSE){
@@ -1673,10 +1785,14 @@ class App {
         if($format == "text"){
             foreach($data as $event){
                 $id = $event['id'];
+                $severity = self::log_severity($event["severity"]);
+                $severity_col = "reset";
+                if($severity == "MAJOR"){ $severity_col = "bold"; }
+                if($severity == "CRITICAL"){ $severity_col = "lightred"; }
                 if(isset($event['jobId'])){ $id = $event['jobId']; }
                 $str .= date("M d H:i:s", intval($event['timeSource'])) ." " .strval($event['clientName']) ." "
-                    .$event['subsystem'] ."[$id]: " .self::log_severity($event["severity"]) ." "
-                    .$event["description"]
+                    .$event['subsystem'] ."[$id]: " .self::console_color($severity_col, TRUE) .$severity ." "
+                    .$event["description"] .self::console_color('reset', TRUE)
                     ."\n";
             }
         }

@@ -414,6 +414,11 @@ class Commvault {
         if(is_numeric($id)){ $get = "/$id"; }
         elseif(is_string($id)){ $get = "/byName(userName='$id')"; }
         $query = $this->query("User" .$get);
+
+        if(
+            isset($query['errorCode']) and
+            intval($query['errorCode']) == -1
+        ){ return FALSE; }
         return $query;
     }
 
